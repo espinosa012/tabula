@@ -18,11 +18,19 @@ The system SHALL provide a guided visual interface to define and create new tabl
 - **THEN** the system rejects the operation before execution and flags the name collision
 
 ### Requirement: Modifying and dropping tables
-The system SHALL allow altering existing tables to add columns or dropping entire tables after confirmation.
+The system SHALL allow altering existing tables to add columns, renaming tables, or dropping entire tables after confirmation.
 
 #### Scenario: Adding a column to an existing table
 - **WHEN** the user specifies the name and type of a new column for an existing table
 - **THEN** the system runs the `ALTER TABLE ADD COLUMN` statement and updates the table's schema view
+
+#### Scenario: Renaming a table
+- **WHEN** the user picks "Rename table" from the table's actions menu and provides a new, unused name
+- **THEN** the system runs `ALTER TABLE ... RENAME TO ...`, keeps the table's data and schema intact, and updates the table list (following the renamed table if it was selected)
+
+#### Scenario: Rejecting a rename that collides with an existing name
+- **WHEN** the user tries to rename a table to a name already used by another table or view
+- **THEN** the system rejects the operation and reports the name collision
 
 #### Scenario: Dropping a table (DROP TABLE)
 - **WHEN** the user requests to drop a table and explicitly confirms the destructive action

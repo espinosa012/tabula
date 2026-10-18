@@ -79,6 +79,11 @@ class BaseDataSource(ABC):
         pass
 
     @abstractmethod
+    def rename_table(self, collection_name: str, new_name: str) -> bool:
+        """Rename an existing table."""
+        pass
+
+    @abstractmethod
     def drop_table(self, collection_name: str) -> bool:
         """Delete a collection or table."""
         pass

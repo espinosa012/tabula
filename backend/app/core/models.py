@@ -77,6 +77,11 @@ class AddColumnRequest(BaseModel):
     column: ColumnDefinition
 
 
+class RenameTableRequest(BaseModel):
+    """Request to rename an existing table."""
+    new_name: str
+
+
 class ExecuteQueryRequest(BaseModel):
     """Request to execute free-form SQL."""
     query: str

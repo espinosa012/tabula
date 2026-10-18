@@ -36,6 +36,54 @@ body {
     margin-top: 0.5rem;
 }
 
+/* The sidebar filter's icon doubles as a clear ("x") button once there is text. */
+#btn-filter-tables-toggle {
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+#btn-filter-tables-toggle:hover {
+    opacity: 1;
+}
+
+/* Table-list rows: icon + name + optional count + per-row actions menu */
+.table-list-item {
+    display: flex !important;
+    align-items: center;
+}
+
+.table-list-item .table-list-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table-list-item .row-actions {
+    flex: 0 0 auto;
+    margin-left: 0.5rem;
+}
+
+.table-list-item .row-actions > .icon {
+    margin: 0;
+    color: #a0aec0;
+}
+
+.table-list-item .row-actions:hover > .icon {
+    color: #4a5568;
+}
+
+/* Right-align the menu so it grows leftwards, and keep it above neighbours;
+   paired with direction:"auto" + context so it is not clipped by the
+   scrolling list container. */
+.row-actions .menu {
+    left: auto !important;
+    right: 0;
+    min-width: 150px;
+    z-index: 1200;
+}
+
 .main-workspace {
     background: #ffffff;
     border-radius: 4px;

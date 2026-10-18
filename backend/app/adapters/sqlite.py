@@ -415,6 +415,38 @@ class SQLiteDataSource(BaseDataSource):
         self._conn.commit()
         return True
 
+    def rename_table(self, collection_name: str, new_name: str) -> bool:
+        """Rename an existing table with ALTER TABLE RENAME TO."""
+        if not self.is_connected():
+            raise RuntimeError("Database not connected.")
+
+        new_name = new_name.strip()
+        if not new_name:
+            raise ValueError("The new table name cannot be empty.")
+        if new_name == collection_name:
+            return True
+
+        cursor = self._conn.cursor()
+        cursor.execute(
+            "SELECT type FROM sqlite_master WHERE name = ? AND type IN ('table', 'view');",
+            (collection_name,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise KeyError(f"Table or view '{collection_name}' does not exist.")
+        if row["type"] != "table":
+            raise ValueError("Only tables can be renamed; views must be dropped and recreated.")
+
+        cursor.execute("SELECT 1 FROM sqlite_master WHERE name = ?;", (new_name,))
+        if cursor.fetchone():
+            raise ValueError(f"An object named '{new_name}' already exists.")
+
+        cursor.execute(
+            f"ALTER TABLE {_quote_ident(collection_name)} RENAME TO {_quote_ident(new_name)};"
+        )
+        self._conn.commit()
+        return True
+
     def drop_table(self, collection_name: str) -> bool:
         """Delete a table or view with DROP TABLE or DROP VIEW."""
         if not self.is_connected():

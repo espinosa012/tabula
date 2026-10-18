@@ -114,7 +114,7 @@
                     <div class="table-sidebar">
                         <div class="ui fluid icon input small">
                             <input type="text" id="filter-tables" placeholder="Filter tables...">
-                            <i class="search icon"></i>
+                            <i class="search icon" id="btn-filter-tables-toggle" title="Filter tables"></i>
                         </div>
 
                         <div class="ui horizontal divider header small" style="margin: 0.8rem 0;">
@@ -143,7 +143,7 @@
                             </div>
                             <div class="inline">
                                 <button class="ui primary button" id="btn-empty-create-table">
-                                    <i class="plus icon"></i> Create First Table
+                                    <i class="plus icon"></i> <span id="btn-empty-create-table-label">Create First Table</span>
                                 </button>
                                 <button class="ui secondary button" id="btn-empty-open-sql">
                                     <i class="terminal icon"></i> Open SQL Console
@@ -177,7 +177,7 @@
                                     <div class="ten wide column right aligned">
                                         <div class="ui action input small" style="margin-right: 0.5rem;">
                                             <input type="text" id="input-search-records" placeholder="Search in table...">
-                                            <button class="ui button" id="btn-search-records">
+                                            <button class="ui button" id="btn-search-records" title="Search">
                                                 <i class="search icon"></i>
                                             </button>
                                         </div>
@@ -409,6 +409,25 @@
         <div class="actions">
             <button class="ui cancel button">Cancel</button>
             <button class="ui negative button" id="btn-confirm-delete-execute">Delete</button>
+        </div>
+    </div>
+
+    <!-- Modal 6: Rename Table -->
+    <div class="ui mini modal" id="modal-rename-table">
+        <div class="header">
+            <i class="edit icon"></i> Rename Table
+        </div>
+        <div class="content">
+            <form class="ui form" id="form-rename-table">
+                <div class="field">
+                    <label>New name for <strong id="rename-tbl-original"></strong>:</label>
+                    <input type="text" id="rename-tbl-name" placeholder="new_table_name" required>
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui primary button" id="btn-confirm-rename-table">Rename</button>
         </div>
     </div>
 

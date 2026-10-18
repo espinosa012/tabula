@@ -51,6 +51,45 @@ def test_static_spa_serving():
     assert "vg-data-visor" in res_app.text
 
 
+def test_rename_table_api(temp_db_path):
+    # Create DB + table
+    assert client.post("/api/connection/create", json={"path": temp_db_path}).status_code == 200
+    client.post(
+        "/api/tables/create",
+        json={
+            "name": "articles",
+            "columns": [
+                {"name": "id", "type": "INTEGER", "is_pk": True, "auto_increment": True},
+                {"name": "title", "type": "TEXT"},
+            ],
+        },
+    )
+    client.post("/api/tables/articles/records", json={"values": {"title": "Book"}})
+
+    # Rename succeeds
+    res = client.post("/api/tables/articles/rename", json={"new_name": "posts"})
+    assert res.status_code == 200
+    assert res.json()["new_name"] == "posts"
+
+    names = [t["name"] for t in client.get("/api/tables").json()]
+    assert names == ["posts"]
+    assert client.get("/api/tables/posts/records").json()["total"] == 1
+
+    # Duplicate name is rejected with 400
+    client.post(
+        "/api/tables/create",
+        json={"name": "drafts", "columns": [{"name": "id", "type": "INTEGER", "is_pk": True}]},
+    )
+    res_dup = client.post("/api/tables/posts/rename", json={"new_name": "drafts"})
+    assert res_dup.status_code == 400
+
+    # Unknown table returns 404
+    res_404 = client.post("/api/tables/nope/rename", json={"new_name": "whatever"})
+    assert res_404.status_code == 404
+
+    client.post("/api/connection/close")
+
+
 def test_complete_api_workflow(temp_db_path):
     # 1. Create database
     res_create_db = client.post("/api/connection/create", json={"path": temp_db_path})

@@ -8,6 +8,7 @@ from backend.app.core.models import (
     TableSchema,
     CreateTableRequest,
     AddColumnRequest,
+    RenameTableRequest,
 )
 
 router = APIRouter(prefix="/api/tables", tags=["Tables & Schema"])
@@ -64,6 +65,21 @@ def add_column_to_table(name: str, req: AddColumnRequest):
         return {"status": "altered", "table": name, "column": req.column.name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error adding column: {str(e)}")
+
+
+@router.post("/{name}/rename")
+def rename_table(name: str, req: RenameTableRequest):
+    """Rename an existing table (ALTER TABLE RENAME TO)."""
+    source = _get_active_source()
+    try:
+        source.rename_table(name, req.new_name)
+        return {"status": "renamed", "table": name, "new_name": req.new_name.strip()}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error renaming table: {str(e)}")
 
 
 @router.delete("/{name}/drop")

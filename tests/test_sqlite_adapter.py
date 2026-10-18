@@ -82,6 +82,44 @@ def test_table_ddl_and_schema(temp_db):
     assert schema_updated.columns[3].name == "active"
 
 
+def test_rename_table(temp_db):
+    ds = SQLiteDataSource()
+    ds.create_database(temp_db)
+
+    req = CreateTableRequest(
+        name="customers",
+        columns=[
+            ColumnDefinition(name="id", type="INTEGER", is_pk=True, auto_increment=True),
+            ColumnDefinition(name="name", type="TEXT", not_null=True),
+        ],
+    )
+    ds.create_table(req)
+    ds.insert_record("customers", {"name": "Alice"})
+
+    # Rename keeps the data and reflects the new name in the catalog/schema
+    assert ds.rename_table("customers", "clients")
+    assert [t.name for t in ds.list_collections()] == ["clients"]
+    assert ds.get_schema("clients").name == "clients"
+
+    page = ds.get_records("clients", PaginationParams())
+    assert page.total == 1
+    assert page.records[0]["name"] == "Alice"
+
+    # A colliding target name is rejected
+    ds.create_table(
+        CreateTableRequest(
+            name="orders",
+            columns=[ColumnDefinition(name="id", type="INTEGER", is_pk=True)],
+        )
+    )
+    with pytest.raises(ValueError):
+        ds.rename_table("clients", "orders")
+
+    # An unknown source table raises KeyError
+    with pytest.raises(KeyError):
+        ds.rename_table("missing_table", "whatever")
+
+
 def test_table_dml_operations(temp_db):
     ds = SQLiteDataSource()
     ds.create_database(temp_db)

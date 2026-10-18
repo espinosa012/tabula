@@ -337,11 +337,19 @@ $(document).ready(function () {
     });
 
     // ================= TABLES SIDEBAR =================
+    // The empty-state button reads "Create First Table" only while the database
+    // has no tables; once it has any, creating another one is "Add New Table".
+    function updateEmptyStateCreateButton() {
+        const hasTables = state.tables.length > 0;
+        $("#btn-empty-create-table-label").text(hasTables ? "Add New Table" : "Create First Table");
+    }
+
     async function loadTablesList() {
         try {
             const tables = await apiRequest("/api/tables");
             state.tables = tables;
             $("#count-tables").text(tables.length);
+            updateEmptyStateCreateButton();
             renderTablesList();
         } catch (err) {
             showToast("Error", err.message, "error");
@@ -365,24 +373,86 @@ $(document).ready(function () {
             const icon = isView ? "eye icon blue" : "table icon";
             const countLabel = t.row_count !== null ? `<span class="ui mini label">${t.row_count}</span>` : "";
             const activeClass = state.activeTable === t.name ? "active teal" : "";
+            const dropLabel = isView ? "Drop view" : "Drop table";
+            const renameItem = isView
+                ? ""
+                : `<div class="item row-action-rename">
+                                <i class="edit icon"></i> Rename table
+                            </div>`;
 
             const $item = $(`
-                <a class="item ${activeClass}" data-table="${t.name}">
+                <a class="item table-list-item ${activeClass}" data-table="${t.name}">
                     <i class="${icon}"></i>
-                    ${t.name}
+                    <span class="table-list-name">${t.name}</span>
                     ${countLabel}
+                    <div class="ui dropdown row-actions">
+                        <i class="ellipsis vertical icon"></i>
+                        <div class="menu">
+                            ${renameItem}
+                            <div class="item row-action-drop">
+                                <i class="trash icon"></i> ${dropLabel}
+                            </div>
+                        </div>
+                    </div>
                 </a>
             `);
 
-            $item.on("click", () => {
+            // Keep the actions menu from also selecting the table
+            $item.find(".row-actions").on("click", function (e) {
+                e.stopPropagation();
+            });
+            $item.find(".row-action-drop").on("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                confirmDropCollection(t.name, t.type);
+            });
+            $item.find(".row-action-rename").on("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openRenameTableModal(t.name);
+            });
+
+            $item.on("click", function (e) {
+                if ($(e.target).closest(".row-actions").length) return;
                 selectActiveTable(t.name);
             });
 
             $list.append($item);
         });
+
+        // The list is re-rendered on every change, so (re)initialize the row menus.
+        // `context` points at the scrolling list so the menu opens upward when it
+        // would otherwise be clipped by the container's overflow.
+        $list.find(".row-actions").dropdown({
+            direction: "auto",
+            context: "#tables-list",
+        });
     }
 
-    $("#filter-tables").on("input", renderTablesList);
+    // Sidebar "Filter tables" input: its icon doubles as a clear button, showing
+    // a magnifier when empty and an "x" (which clears the filter) once there is text.
+    function updateTablesFilterButton() {
+        const hasText = $("#filter-tables").val().length > 0;
+        $("#btn-filter-tables-toggle")
+            .toggleClass("search", !hasText)
+            .toggleClass("times", hasText)
+            .attr("title", hasText ? "Clear filter" : "Filter tables");
+    }
+
+    $("#filter-tables").on("input", function () {
+        renderTablesList();
+        updateTablesFilterButton();
+    });
+
+    $("#btn-filter-tables-toggle").on("click", function () {
+        if ($("#filter-tables").val().length > 0) {
+            $("#filter-tables").val("");
+            renderTablesList();
+            updateTablesFilterButton();
+        } else {
+            $("#filter-tables").focus();
+        }
+    });
 
     function selectActiveTable(tableName) {
         state.activeTable = tableName;
@@ -391,6 +461,7 @@ $(document).ready(function () {
         state.pagination.sortBy = null;
         state.pagination.sortDir = "asc";
         $("#input-search-records").val("");
+        updateSearchButton();
 
         renderTablesList();
         loadActiveTable();
@@ -568,15 +639,43 @@ $(document).ready(function () {
         }
     });
 
-    $("#btn-search-records").on("click", function () {
+    // The search button doubles as a clear button: it shows a magnifier when
+    // the field is empty and an "x" (which clears the text) once there is input.
+    function updateSearchButton() {
+        const hasText = $("#input-search-records").val().length > 0;
+        $("#btn-search-records")
+            .attr("title", hasText ? "Clear search" : "Search")
+            .html(hasText ? '<i class="times icon"></i>' : '<i class="search icon"></i>');
+    }
+
+    function runRecordSearch() {
         state.pagination.search = $("#input-search-records").val().trim();
         state.pagination.page = 1;
+        updateSearchButton();
         loadTableRecords();
+    }
+
+    function clearRecordSearch() {
+        $("#input-search-records").val("");
+        state.pagination.search = "";
+        state.pagination.page = 1;
+        updateSearchButton();
+        loadTableRecords();
+    }
+
+    $("#btn-search-records").on("click", function () {
+        if ($("#input-search-records").val().length > 0) {
+            clearRecordSearch();
+        } else {
+            runRecordSearch();
+        }
     });
+
+    $("#input-search-records").on("input", updateSearchButton);
 
     $("#input-search-records").on("keyup", function (e) {
         if (e.key === "Enter") {
-            $("#btn-search-records").click();
+            runRecordSearch();
         }
     });
 
@@ -894,29 +993,97 @@ $(document).ready(function () {
         }
     });
 
-    // Drop Table Modal (DROP)
-    $("#btn-modal-drop-table").on("click", function () {
-        if (!state.activeTable) return;
-        $("#confirm-delete-title").text("Drop Table");
-        $("#confirm-delete-message").html(`Are you sure you want to permanently drop table <strong>${state.activeTable}</strong>? All its data will be destroyed.`);
+    // Shared rename flow — used by the table-list row menu.
+    function openRenameTableModal(currentName) {
+        $("#rename-tbl-original").text(currentName);
+        $("#rename-tbl-name").val(currentName);
+        $("#modal-rename-table").modal("show");
+
+        const submit = async function () {
+            const newName = $("#rename-tbl-name").val().trim();
+            if (!newName) {
+                showToast("Warning", "The new table name is required", "error");
+                return;
+            }
+            if (newName === currentName) {
+                $("#modal-rename-table").modal("hide");
+                return;
+            }
+
+            $("#btn-confirm-rename-table").addClass("loading disabled");
+            try {
+                await apiRequest(`/api/tables/${encodeURIComponent(currentName)}/rename`, {
+                    method: "POST",
+                    body: JSON.stringify({ new_name: newName }),
+                });
+                showToast("Table Renamed", `Table '${currentName}' renamed to '${newName}'`, "success");
+                $("#modal-rename-table").modal("hide");
+
+                // Keep the workspace pointed at the same (now renamed) table.
+                if (state.activeTable === currentName) {
+                    state.activeTable = newName;
+                    $("#active-table-name").text(newName);
+                }
+                await loadTablesList();
+                if (state.activeTable) loadActiveTable();
+            } catch (err) {
+                showToast("Error renaming table", err.message, "error");
+            } finally {
+                $("#btn-confirm-rename-table").removeClass("loading disabled");
+            }
+        };
+
+        $("#btn-confirm-rename-table").off("click").on("click", submit);
+        $("#rename-tbl-name").off("keyup").on("keyup", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                submit();
+            }
+        });
+    }
+
+    // Shared drop flow — used by the Structure-tab button and the table-list menu.
+    // The target name/type come from the caller, never from the active-table state.
+    function confirmDropCollection(name, type) {
+        const isView = type === "view";
+        const kindLabel = isView ? "View" : "Table";
+
+        $("#confirm-delete-title").text(`Drop ${kindLabel}`);
+        $("#confirm-delete-message").html(
+            isView
+                ? `Are you sure you want to drop view <strong>${name}</strong>? The view will be removed, but its underlying data is preserved.`
+                : `Are you sure you want to permanently drop table <strong>${name}</strong>? All its data will be destroyed.`
+        );
 
         $("#btn-confirm-delete-execute").off("click").on("click", async function () {
             try {
-                await apiRequest(`/api/tables/${encodeURIComponent(state.activeTable)}/drop`, {
+                await apiRequest(`/api/tables/${encodeURIComponent(name)}/drop`, {
                     method: "DELETE",
                 });
-                showToast("Table Dropped", `Table '${state.activeTable}' dropped successfully`, "success");
+                showToast(`${kindLabel} Dropped`, `${kindLabel} '${name}' dropped successfully`, "success");
                 $("#modal-confirm-delete").modal("hide");
-                state.activeTable = null;
-                $("#active-table-panel").hide();
-                $("#empty-table-state").show();
+
+                // Only reset the workspace when the dropped entity was the selected one.
+                if (state.activeTable === name) {
+                    state.activeTable = null;
+                    state.activeSchema = null;
+                    $("#active-table-panel").hide();
+                    $("#empty-table-state").show();
+                }
                 loadTablesList();
             } catch (err) {
-                showToast("Error dropping table", err.message, "error");
+                showToast(`Error dropping ${isView ? "view" : "table"}`, err.message, "error");
             }
         });
 
         $("#modal-confirm-delete").modal("show");
+    }
+
+    // Drop Table Modal (DROP) — Structure-tab entry point
+    $("#btn-modal-drop-table").on("click", function () {
+        if (!state.activeTable) return;
+        const type = state.activeSchema && state.activeSchema.type ? state.activeSchema.type : "table";
+        confirmDropCollection(state.activeTable, type);
     });
 
     // ================= TAB 3: SQL CONSOLE =================

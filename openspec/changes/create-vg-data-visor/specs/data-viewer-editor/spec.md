@@ -39,6 +39,10 @@ The system SHALL allow filtering the displayed records through search terms appl
 - **WHEN** the user clears the search field
 - **THEN** the system resets the query to display all records in the table
 
+#### Scenario: Clearing the filter with the inline button
+- **WHEN** the search field contains text and the user clicks the inline button (which shows an "x" instead of the magnifier while there is text)
+- **THEN** the system empties the search field and resets the query to display all records
+
 ### Requirement: Editing existing records
 The system SHALL allow modifying the column values of an existing row by identifying it through its primary key or `rowid`.
 
