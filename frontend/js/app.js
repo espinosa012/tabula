@@ -34,6 +34,8 @@ $(document).ready(function () {
         onVisible: function (tabPath) {
             state.activeTab = tabPath;
             if (tabPath === "tab-sql") {
+                // The editor was likely initialized while its tab was hidden.
+                refreshSqlEditor();
                 suggestDefaultQuery();
             }
         },
@@ -107,6 +109,7 @@ $(document).ready(function () {
         $("#view-connection").hide();
         $("#view-workspace").show();
 
+        updateSqlTerminalTitle();
         loadTablesList();
         loadRecentDatabases();
     }
@@ -124,6 +127,7 @@ $(document).ready(function () {
         $("#view-connection").show();
         $("#active-table-panel").hide();
         $("#empty-table-state").show();
+        updateSqlTerminalTitle();
     }
 
     async function loadRecentDatabases() {
@@ -1087,6 +1091,57 @@ $(document).ready(function () {
     });
 
     // ================= TAB 3: SQL CONSOLE =================
+    // The console is a terminal-styled CodeMirror editor (vendored CodeMirror 5 +
+    // SQL mode + Dracula dark theme). `sqlEditor` is null if the library failed to
+    // load, in which case every helper below transparently falls back to the
+    // plain <textarea> so the console keeps working.
+    let sqlEditor = null;
+
+    function initSqlEditor() {
+        const el = document.getElementById("sql-query-input");
+        if (!el || typeof CodeMirror === "undefined") return;
+
+        sqlEditor = CodeMirror.fromTextArea(el, {
+            mode: "text/x-sql",
+            theme: "dracula",
+            lineNumbers: true,
+            lineWrapping: true,
+            indentUnit: 4,
+            tabSize: 4,
+            extraKeys: {
+                "Ctrl-Enter": executeSql,
+                "Cmd-Enter": executeSql,
+            },
+        });
+    }
+
+    function getSqlQuery() {
+        return sqlEditor ? sqlEditor.getValue() : $("#sql-query-input").val() || "";
+    }
+
+    function setSqlQuery(query) {
+        if (sqlEditor) {
+            sqlEditor.setValue(query);
+            sqlEditor.refresh();
+        } else {
+            $("#sql-query-input").val(query);
+        }
+    }
+
+    // CodeMirror cannot measure itself while its tab is hidden, so refresh the
+    // editor whenever the SQL tab becomes visible.
+    function refreshSqlEditor() {
+        if (sqlEditor) sqlEditor.refresh();
+    }
+
+    // Keeps the terminal title bar showing the connected database file.
+    function updateSqlTerminalTitle() {
+        const label = state.connected && state.dbPath ? getFileName(state.dbPath) : "not connected";
+        $("#sql-terminal-title").text(`sqlite — ${label}`);
+    }
+
+    initSqlEditor();
+
     $("#btn-empty-open-sql").on("click", function () {
         $("#empty-table-state").hide();
         $("#active-table-panel").show();
@@ -1094,29 +1149,30 @@ $(document).ready(function () {
     });
 
     function suggestDefaultQuery() {
-        if (state.activeTable && !$("#sql-query-input").val().trim()) {
-            $("#sql-query-input").val(`SELECT * FROM "${state.activeTable}" LIMIT 50;`);
+        if (state.activeTable && !getSqlQuery().trim()) {
+            setSqlQuery(`SELECT * FROM "${state.activeTable}" LIMIT 50;`);
         }
     }
 
     $("#btn-sql-preset-select").on("click", function () {
         const tbl = state.activeTable || "my_table";
-        $("#sql-query-input").val(`SELECT * FROM "${tbl}" LIMIT 50;`);
+        setSqlQuery(`SELECT * FROM "${tbl}" LIMIT 50;`);
     });
 
     $("#btn-sql-preset-count").on("click", function () {
         const tbl = state.activeTable || "my_table";
-        $("#sql-query-input").val(`SELECT COUNT(*) as total_rows FROM "${tbl}";`);
+        setSqlQuery(`SELECT COUNT(*) as total_rows FROM "${tbl}";`);
     });
 
     $("#btn-sql-clear").on("click", function () {
-        $("#sql-query-input").val("");
+        setSqlQuery("");
         $("#sql-message-area").hide();
         $("#sql-results-container").hide();
     });
 
-    $("#btn-execute-sql").on("click", async function () {
-        const query = $("#sql-query-input").val().trim();
+    // Bound to the "Run SQL" button and to Ctrl/Cmd+Enter inside the editor.
+    async function executeSql() {
+        const query = getSqlQuery().trim();
         if (!query) {
             showToast("Warning", "Enter a SQL statement to run", "info");
             return;
@@ -1159,7 +1215,9 @@ $(document).ready(function () {
         } finally {
             $("#btn-execute-sql").removeClass("loading disabled");
         }
-    });
+    }
+
+    $("#btn-execute-sql").on("click", executeSql);
 
     function renderSqlResults(result) {
         const $head = $("#grid-sql-head");

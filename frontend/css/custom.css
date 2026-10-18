@@ -158,6 +158,173 @@ body {
     width: 100%;
 }
 
+/* ================= TERMINAL-STYLE SQL CONSOLE =================
+   The SQL console is dressed up as a dark terminal: a window chrome bar
+   (traffic-light dots + title), a "sqlite>" prompt and CodeMirror running
+   the Dracula dark theme. Colours below match Dracula so the editor and
+   the output panel look like one piece. */
+
+.sql-terminal {
+    background: #282a36;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.sql-terminal-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: #21222c;
+    border-bottom: 1px solid #191a21;
+}
+
+.sql-terminal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+    display: inline-block;
+}
+
+.sql-terminal-dot.dot-red {
+    background: #ff5f56;
+}
+
+.sql-terminal-dot.dot-yellow {
+    background: #ffbd2e;
+}
+
+.sql-terminal-dot.dot-green {
+    background: #27c93f;
+}
+
+.sql-terminal-title {
+    margin-left: 0.5rem;
+    color: #a4a7c4;
+    font-size: 0.8em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sql-terminal-hint {
+    margin-left: auto;
+    padding-left: 1rem;
+    color: #6272a4;
+    font-size: 0.75em;
+    white-space: nowrap;
+}
+
+.sql-terminal-body {
+    display: flex;
+    align-items: stretch;
+    padding: 0.6rem 0.75rem;
+}
+
+.sql-terminal-prompt {
+    flex: 0 0 auto;
+    padding: 0 0.5rem 0 0; /* shares the editor's 4px line padding */
+    color: #50fa7b;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+/* CodeMirror inside the terminal frame: no chrome of its own. */
+.sql-terminal .CodeMirror {
+    flex: 1;
+    height: auto;
+    min-height: 140px;
+    background: transparent;
+    color: #f8f8f2;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.sql-terminal .CodeMirror-scroll {
+    min-height: 140px;
+}
+
+.sql-terminal .CodeMirror-gutters {
+    background: transparent;
+    border-right: 1px solid #3d4155;
+}
+
+.sql-terminal .CodeMirror-linenumber {
+    color: #6272a4;
+}
+
+.sql-terminal .CodeMirror-cursor {
+    border-left: 2px solid #50fa7b;
+}
+
+.sql-terminal .CodeMirror-selected {
+    background: #44475a !important;
+}
+
+.sql-terminal .CodeMirror-placeholder {
+    color: #6272a4;
+}
+
+.sql-terminal-prompt::after {
+    content: "_";
+    animation: sql-terminal-caret 1.1s step-end infinite;
+}
+
+@keyframes sql-terminal-caret {
+    0%, 50% { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+}
+
+/* Output panel: dark like the editor, so results read as terminal output. */
+.sql-terminal-output .ui.message {
+    background: #21222c;
+    color: #f8f8f2;
+    box-shadow: none;
+    border-radius: 6px;
+}
+
+.sql-terminal-output .ui.message .header {
+    color: inherit;
+}
+
+.sql-terminal-output .data-table-container {
+    background: #282a36;
+    border-radius: 6px;
+    padding: 0.25rem 0.25rem 0;
+}
+
+.sql-terminal-output .ui.table {
+    background: transparent;
+    color: #f8f8f2;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.85em;
+}
+
+.sql-terminal-output .ui.table th,
+.sql-terminal-output .ui.table td {
+    border-color: #44475a !important;
+}
+
+.sql-terminal-output .data-table th {
+    background: #21222c !important;
+    color: #8be9fd;
+}
+
+.sql-terminal-output .data-table th:hover {
+    background: #2b2d3a !important;
+}
+
+.sql-terminal-output .data-table tr:hover {
+    background-color: #343746;
+}
+
+.sql-terminal-output .data-table td.cell-null {
+    color: #6272a4;
+}
+
 .code-block {
     background-color: #2d3748;
     color: #f7fafc;

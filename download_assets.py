@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download the Fomantic-UI and jQuery assets to package them 100% offline."""
+"""Download the Fomantic-UI, jQuery and CodeMirror assets to package them 100% offline."""
 import os
 import urllib.request
 
@@ -40,6 +40,28 @@ FILES_TO_DOWNLOAD = [
     (
         "https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.3/themes/default/assets/fonts/outline-icons.woff2",
         os.path.join(FONTS_DIR, "outline-icons.woff2"),
+    ),
+    # CodeMirror 5: terminal-style SQL console (editor + SQL syntax mode +
+    # Dracula dark theme + placeholder addon).
+    (
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",
+        os.path.join(CSS_DIR, "codemirror.min.css"),
+    ),
+    (
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css",
+        os.path.join(CSS_DIR, "codemirror-theme-dracula.min.css"),
+    ),
+    (
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
+        os.path.join(JS_DIR, "codemirror.min.js"),
+    ),
+    (
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js",
+        os.path.join(JS_DIR, "codemirror-mode-sql.min.js"),
+    ),
+    (
+        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js",
+        os.path.join(JS_DIR, "codemirror-addon-placeholder.min.js"),
     ),
 ]
 

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>vg-data-visor | Local SQLite Viewer & Editor</title>
     <link rel="stylesheet" href="/css/semantic.min.css">
+    <link rel="stylesheet" href="/css/codemirror.min.css">
+    <link rel="stylesheet" href="/css/codemirror-theme-dracula.min.css">
     <link rel="stylesheet" href="/css/custom.css">
 </head>
 <body>
@@ -260,7 +262,20 @@
                                 <h3 class="ui header">SQL Query Console</h3>
                                 <div class="ui form">
                                     <div class="field">
-                                        <textarea class="sql-editor-textarea" id="sql-query-input" placeholder="SELECT * FROM my_table LIMIT 50;"></textarea>
+                                        <!-- Terminal-style editor: CodeMirror + Dracula dark theme -->
+                                        <div class="sql-terminal">
+                                            <div class="sql-terminal-bar">
+                                                <span class="sql-terminal-dot dot-red"></span>
+                                                <span class="sql-terminal-dot dot-yellow"></span>
+                                                <span class="sql-terminal-dot dot-green"></span>
+                                                <span class="sql-terminal-title" id="sql-terminal-title">sqlite :memory:</span>
+                                                <span class="sql-terminal-hint">Ctrl/Cmd + Enter to run</span>
+                                            </div>
+                                            <div class="sql-terminal-body">
+                                                <span class="sql-terminal-prompt">sqlite&gt;</span>
+                                                <textarea class="sql-editor-textarea" id="sql-query-input" placeholder="SELECT * FROM my_table LIMIT 50;"></textarea>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="fields" style="margin-bottom: 0.5rem;">
                                         <div class="field">
@@ -276,15 +291,18 @@
                                     </div>
                                 </div>
 
-                                <!-- Result / error message -->
-                                <div id="sql-message-area" style="margin-top: 1rem; display: none;"></div>
+                                <!-- Terminal-style output: messages + result grid -->
+                                <div class="sql-terminal-output">
+                                    <!-- Result / error message -->
+                                    <div id="sql-message-area" style="margin-top: 1rem; display: none;"></div>
 
-                                <!-- Query results table -->
-                                <div class="data-table-container" id="sql-results-container" style="display: none;">
-                                    <table class="ui celled compact table data-table" id="grid-sql-results">
-                                        <thead id="grid-sql-head"></thead>
-                                        <tbody id="grid-sql-body"></tbody>
-                                    </table>
+                                    <!-- Query results table -->
+                                    <div class="data-table-container" id="sql-results-container" style="display: none;">
+                                        <table class="ui celled compact table data-table" id="grid-sql-results">
+                                            <thead id="grid-sql-head"></thead>
+                                            <tbody id="grid-sql-body"></tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -434,6 +452,9 @@
     <!-- Local Offline Scripts -->
     <script src="/js/jquery.min.js"></script>
     <script src="/js/semantic.min.js"></script>
+    <script src="/js/codemirror.min.js"></script>
+    <script src="/js/codemirror-mode-sql.min.js"></script>
+    <script src="/js/codemirror-addon-placeholder.min.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

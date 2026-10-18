@@ -51,6 +51,25 @@ def test_static_spa_serving():
     assert "vg-data-visor" in res_app.text
 
 
+def test_sql_console_terminal_assets():
+    # The terminal-style SQL console relies on vendored CodeMirror assets, so the
+    # page must reference them and they must be served locally (100% offline).
+    res_index = client.get("/")
+    assert res_index.status_code == 200
+    assert "sql-terminal" in res_index.text
+    assert 'id="sql-query-input"' in res_index.text
+
+    for asset in (
+        "/css/codemirror.min.css",
+        "/css/codemirror-theme-dracula.min.css",
+        "/js/codemirror.min.js",
+        "/js/codemirror-mode-sql.min.js",
+    ):
+        res_asset = client.get(asset)
+        assert res_asset.status_code == 200, asset
+        assert len(res_asset.content) > 0
+
+
 def test_rename_table_api(temp_db_path):
     # Create DB + table
     assert client.post("/api/connection/create", json={"path": temp_db_path}).status_code == 200

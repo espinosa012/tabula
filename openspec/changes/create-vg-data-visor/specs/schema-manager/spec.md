@@ -54,6 +54,11 @@ The system SHALL provide an interactive query editor to run any SQL statement ag
 - **WHEN** the user runs statements such as `INSERT`, `UPDATE`, `CREATE INDEX`, or `DELETE`
 - **THEN** the system executes the statements, applies the changes, and reports the number of affected rows
 
+#### Scenario: Terminal-style dark console
+- **WHEN** the user opens the SQL Console tab
+- **THEN** the system renders the editor with a dark terminal look (window title bar with the connected database name, `sqlite>` prompt, SQL syntax highlighting, and `Ctrl`/`Cmd` + `Enter` to run), with the messages and result grid styled in the same dark theme
+- **AND** all editor assets are served locally from the vendored CodeMirror files, so the console keeps working offline
+
 #### Scenario: Handling syntax or SQL execution errors
 - **WHEN** a statement contains syntax errors or violates integrity constraints
 - **THEN** the system catches the SQLite exception and shows the exact error message without interrupting the session

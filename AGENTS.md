@@ -26,6 +26,10 @@ assets are vendored and committed.
   `/api/fs/browse`), `tables.py` (DDL), `records.py` (DML at
   `/api/tables/{name}/records`), `query.py` (`/api/query`).
 - `frontend/` — static SPA (`index.html`, `js/app.js`, vendored JS/CSS/fonts).
+  The SQL console is a CodeMirror 5 editor (vendored `js/codemirror*.js` +
+  `css/codemirror*.css`, Dracula dark theme) styled as a dark terminal in
+  `css/custom.css`; `js/app.js` initializes it and falls back to the plain
+  `<textarea>` if CodeMirror is unavailable.
 - `openspec/` — spec-driven change docs; active change lives in
   `openspec/changes/create-vg-data-visor`.
 
@@ -53,5 +57,5 @@ assets are vendored and committed.
 
 - Target Python 3.9 (`requires-python = ">=3.9"`): avoid 3.10+ syntax
   (`X | Y` unions, `match`); use `typing.Optional` / `typing.List`.
-- No Node/npm. To refresh the vendored Fomantic-UI/jQuery assets, run
+- No Node/npm. To refresh the vendored Fomantic-UI/jQuery/CodeMirror assets, run
   `python download_assets.py` (stdlib `urllib`, skips files that already exist).
