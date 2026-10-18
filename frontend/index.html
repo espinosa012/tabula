@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vg-data-visor | Local SQLite Viewer & Editor</title>
+    <link rel="stylesheet" href="/css/semantic.min.css">
+    <link rel="stylesheet" href="/css/custom.css">
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <div class="ui inverted menu" id="top-nav">
+        <div class="header item">
+            <i class="database icon"></i> vg-data-visor
+        </div>
+        <div class="item" id="nav-db-status">
+            <span class="ui grey empty circular label"></span> &nbsp; Disconnected
+        </div>
+        <div class="right menu">
+            <a class="item" id="btn-refresh-all" style="display: none;" title="Refresh catalog">
+                <i class="sync alternate icon"></i> Refresh
+            </a>
+            <a class="item" id="btn-disconnect" style="display: none;" title="Disconnect database">
+                <i class="sign out alternate icon"></i> Disconnect
+            </a>
+        </div>
+    </div>
+
+    <div class="ui fluid container" id="main-container">
+
+        <!-- ================= CONNECTION VIEW (INITIAL) ================= -->
+        <div id="view-connection" class="ui centered grid">
+            <div class="twelve wide tablet eight wide computer column" style="margin-top: 3rem;">
+                <div class="ui raised segments">
+                    <div class="ui segment center aligned secondary">
+                        <h2 class="ui header">
+                            <i class="database icon"></i>
+                            <div class="content">
+                                vg-data-visor
+                                <div class="sub header">Local SQLite database viewer and editor</div>
+                            </div>
+                        </h2>
+                    </div>
+
+                    <div class="ui top attached tabular menu" id="connection-tabs">
+                        <a class="active item" data-tab="tab-open-db">
+                            <i class="folder open icon"></i> Open Existing
+                        </a>
+                        <a class="item" data-tab="tab-create-db">
+                            <i class="plus square outline icon"></i> Create New Database
+                        </a>
+                    </div>
+
+                    <!-- Tab 1: Open Existing -->
+                    <div class="ui bottom attached active tab segment" data-tab="tab-open-db">
+                        <form class="ui form" id="form-open-db">
+                            <div class="field">
+                                <label>SQLite file path (.db, .sqlite, .sqlite3):</label>
+                                <div class="ui action input">
+                                    <input type="text" id="input-open-path" placeholder="/absolute/path/to/my_database.sqlite" required>
+                                    <button type="button" class="ui button" id="btn-open-browse">
+                                        <i class="search icon"></i> Browse...
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="ui primary fluid button" id="btn-submit-open">
+                                <i class="plug icon"></i> Connect
+                            </button>
+                        </form>
+
+                        <!-- Recent history -->
+                        <div id="section-recent-dbs" style="margin-top: 1.5rem; display: none;">
+                            <h5 class="ui horizontal divider header">
+                                <i class="history icon"></i> Recent Files
+                            </h5>
+                            <div class="ui middle aligned selection list" id="list-recent-dbs"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Create New DB -->
+                    <div class="ui bottom attached tab segment" data-tab="tab-create-db">
+                        <form class="ui form" id="form-create-db">
+                            <div class="field">
+                                <label>Destination directory:</label>
+                                <div class="ui action input">
+                                    <input type="text" id="input-create-dir" placeholder="/path/to/directory" required>
+                                    <button type="button" class="ui button" id="btn-create-browse-dir">
+                                        <i class="folder icon"></i> Choose folder
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label>New file name:</label>
+                                <div class="ui input">
+                                    <input type="text" id="input-create-filename" placeholder="new_database.sqlite" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="ui green fluid button" id="btn-submit-create">
+                                <i class="plus circle icon"></i> Create and Connect
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= WORKSPACE VIEW (CONNECTED) ================= -->
+        <div id="view-workspace" style="display: none;">
+            <div class="ui grid">
+                <!-- Left Column: Tables Sidebar -->
+                <div class="four wide column">
+                    <div class="table-sidebar">
+                        <div class="ui fluid icon input small">
+                            <input type="text" id="filter-tables" placeholder="Filter tables...">
+                            <i class="search icon"></i>
+                        </div>
+
+                        <div class="ui horizontal divider header small" style="margin: 0.8rem 0;">
+                            Tables & Views (<span id="count-tables">0</span>)
+                        </div>
+
+                        <button class="ui fluid primary basic mini button" id="btn-modal-create-table">
+                            <i class="plus icon"></i> New Table
+                        </button>
+
+                        <div class="ui vertical menu fluid table-list-scroll" id="tables-list">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Main Content -->
+                <div class="twelve wide column">
+                    <div class="main-workspace">
+
+                        <!-- Initial welcome message with no table selected -->
+                        <div id="empty-table-state" class="ui placeholder segment center aligned">
+                            <div class="ui icon header">
+                                <i class="table icon"></i>
+                                Select a table from the left panel or create a new one
+                            </div>
+                            <div class="inline">
+                                <button class="ui primary button" id="btn-empty-create-table">
+                                    <i class="plus icon"></i> Create First Table
+                                </button>
+                                <button class="ui secondary button" id="btn-empty-open-sql">
+                                    <i class="terminal icon"></i> Open SQL Console
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active Table Panel -->
+                        <div id="active-table-panel" style="display: none;">
+                            <div class="ui secondary pointing menu" id="workspace-tabs">
+                                <a class="active item" data-tab="tab-data">
+                                    <i class="table icon"></i> Data (DML)
+                                </a>
+                                <a class="item" data-tab="tab-schema">
+                                    <i class="sitemap icon"></i> Structure (DDL)
+                                </a>
+                                <a class="item" data-tab="tab-sql">
+                                    <i class="terminal icon"></i> SQL Console
+                                </a>
+                            </div>
+
+                            <!-- Tab 1: Data -->
+                            <div class="ui active tab" data-tab="tab-data">
+                                <div class="ui stackable grid middle aligned">
+                                    <div class="six wide column">
+                                        <h3 class="ui header" style="margin: 0;">
+                                            <span id="active-table-name">table</span>
+                                            <div class="sub header">Total: <span id="table-total-records">0</span> records</div>
+                                        </h3>
+                                    </div>
+                                    <div class="ten wide column right aligned">
+                                        <div class="ui action input small" style="margin-right: 0.5rem;">
+                                            <input type="text" id="input-search-records" placeholder="Search in table...">
+                                            <button class="ui button" id="btn-search-records">
+                                                <i class="search icon"></i>
+                                            </button>
+                                        </div>
+                                        <button class="ui positive mini button" id="btn-add-record">
+                                            <i class="plus icon"></i> New Record
+                                        </button>
+                                        <button class="ui basic mini button" id="btn-refresh-records" title="Refresh data">
+                                            <i class="redo icon"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Data table -->
+                                <div class="data-table-container">
+                                    <table class="ui celled compact striped table data-table" id="grid-records">
+                                        <thead id="grid-head"></thead>
+                                        <tbody id="grid-body"></tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination bar -->
+                                <div class="ui stackable grid middle aligned" style="margin-top: 0.5rem;">
+                                    <div class="eight wide column">
+                                        <span>Page <strong id="lbl-page-current">1</strong> of <strong id="lbl-page-total">1</strong></span>
+                                        &nbsp;&nbsp;
+                                        <select class="ui dropdown mini" id="select-page-size">
+                                            <option value="25">25 rows / page</option>
+                                            <option value="50" selected>50 rows / page</option>
+                                            <option value="100">100 rows / page</option>
+                                            <option value="200">200 rows / page</option>
+                                        </select>
+                                    </div>
+                                    <div class="eight wide column right aligned">
+                                        <div class="ui pagination mini menu" id="pagination-controls">
+                                            <a class="item" id="btn-page-first"><i class="angle double left icon"></i></a>
+                                            <a class="item" id="btn-page-prev"><i class="angle left icon"></i></a>
+                                            <a class="item active" id="lbl-page-num">1</a>
+                                            <a class="item" id="btn-page-next"><i class="angle right icon"></i></a>
+                                            <a class="item" id="btn-page-last"><i class="angle double right icon"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Structure (DDL) -->
+                            <div class="ui tab" data-tab="tab-schema">
+                                <div class="ui stackable grid middle aligned">
+                                    <div class="eight wide column">
+                                        <h3 class="ui header">Structure and Columns</h3>
+                                    </div>
+                                    <div class="eight wide column right aligned">
+                                        <button class="ui primary mini button" id="btn-modal-add-column">
+                                            <i class="plus icon"></i> Add Column
+                                        </button>
+                                        <button class="ui negative mini button" id="btn-modal-drop-table">
+                                            <i class="trash icon"></i> Drop Table
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <table class="ui celled table" id="table-schema-info">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>SQLite Type</th>
+                                            <th>Primary Key</th>
+                                            <th>Not Null</th>
+                                            <th>Default Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="schema-body"></tbody>
+                                </table>
+
+                                <h4 class="ui dividing header">CREATE SQL Statement</h4>
+                                <pre class="code-block" id="schema-sql-view">-- CREATE TABLE ...</pre>
+                            </div>
+
+                            <!-- Tab 3: SQL Console -->
+                            <div class="ui tab" data-tab="tab-sql">
+                                <h3 class="ui header">SQL Query Console</h3>
+                                <div class="ui form">
+                                    <div class="field">
+                                        <textarea class="sql-editor-textarea" id="sql-query-input" placeholder="SELECT * FROM my_table LIMIT 50;"></textarea>
+                                    </div>
+                                    <div class="fields" style="margin-bottom: 0.5rem;">
+                                        <div class="field">
+                                            <button class="ui primary button" id="btn-execute-sql">
+                                                <i class="play icon"></i> Run SQL
+                                            </button>
+                                        </div>
+                                        <div class="field">
+                                            <button class="ui basic button" id="btn-sql-preset-select">SELECT *</button>
+                                            <button class="ui basic button" id="btn-sql-preset-count">COUNT(*)</button>
+                                            <button class="ui basic button" id="btn-sql-clear">Clear</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Result / error message -->
+                                <div id="sql-message-area" style="margin-top: 1rem; display: none;"></div>
+
+                                <!-- Query results table -->
+                                <div class="data-table-container" id="sql-results-container" style="display: none;">
+                                    <table class="ui celled compact table data-table" id="grid-sql-results">
+                                        <thead id="grid-sql-head"></thead>
+                                        <tbody id="grid-sql-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Modal 1: Filesystem Browser -->
+    <div class="ui modal" id="modal-fs-browser">
+        <div class="header">
+            <i class="folder open icon"></i> Browse Local Filesystem
+        </div>
+        <div class="content">
+            <div class="ui breadcrumb" id="fs-breadcrumb" style="margin-bottom: 1rem;"></div>
+            <div class="ui segment fs-browser-list">
+                <div class="ui relaxed divided list" id="fs-item-list"></div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Close</button>
+            <button class="ui primary button" id="btn-fs-select-current" style="display: none;">
+                Select this folder
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal 2: Create New Table (DDL) -->
+    <div class="ui large modal" id="modal-create-table">
+        <div class="header">
+            <i class="table icon"></i> Create New SQLite Table
+        </div>
+        <div class="content">
+            <form class="ui form" id="form-modal-create-table">
+                <div class="field">
+                    <label>Table Name:</label>
+                    <input type="text" id="create-tbl-name" placeholder="e.g. customers" required>
+                </div>
+
+                <h4 class="ui dividing header">Column Definition</h4>
+                <div id="create-tbl-columns-container">
+                    <!-- Dynamic column rows -->
+                </div>
+
+                <button type="button" class="ui basic button small" id="btn-add-column-row" style="margin-top: 0.5rem;">
+                    <i class="plus icon"></i> Add another column
+                </button>
+            </form>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui primary button" id="btn-confirm-create-table">Create Table</button>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add Column to Existing Table -->
+    <div class="ui modal" id="modal-add-column">
+        <div class="header">
+            <i class="columns icon"></i> Add Column to <span id="modal-add-col-table"></span>
+        </div>
+        <div class="content">
+            <form class="ui form" id="form-modal-add-column">
+                <div class="field">
+                    <label>Column Name:</label>
+                    <input type="text" id="add-col-name" placeholder="e.g. phone" required>
+                </div>
+                <div class="field">
+                    <label>Data Type:</label>
+                    <select class="ui dropdown" id="add-col-type">
+                        <option value="TEXT">TEXT</option>
+                        <option value="INTEGER">INTEGER</option>
+                        <option value="REAL">REAL</option>
+                        <option value="BLOB">BLOB</option>
+                        <option value="NUMERIC">NUMERIC</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <div class="ui checkbox">
+                        <input type="checkbox" id="add-col-notnull">
+                        <label>NOT NULL (do not allow null values)</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Default value (optional):</label>
+                    <input type="text" id="add-col-default" placeholder="e.g. 'Unknown' or 0">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui primary button" id="btn-confirm-add-column">Add Column</button>
+        </div>
+    </div>
+
+    <!-- Modal 4: Insert / Edit Record -->
+    <div class="ui modal" id="modal-record-editor">
+        <div class="header" id="modal-record-title">
+            <i class="edit icon"></i> Record
+        </div>
+        <div class="content">
+            <form class="ui form" id="form-record-fields">
+                <div id="record-fields-container"></div>
+            </form>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui positive button" id="btn-confirm-save-record">Save</button>
+        </div>
+    </div>
+
+    <!-- Modal 5: Deletion Confirmation -->
+    <div class="ui mini modal" id="modal-confirm-delete">
+        <div class="header" id="confirm-delete-title">Confirm Deletion</div>
+        <div class="content">
+            <p id="confirm-delete-message">Are you sure you want to delete this item? This action cannot be undone.</p>
+        </div>
+        <div class="actions">
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui negative button" id="btn-confirm-delete-execute">Delete</button>
+        </div>
+    </div>
+
+    <!-- Local Offline Scripts -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/semantic.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
