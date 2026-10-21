@@ -667,10 +667,18 @@ class PostgreSQLDataSource(BaseDataSource):
                 pk_columns=[],
             )
 
-        with self._conn.cursor() as cur:
+        # Views are read-only: run them in a READ ONLY transaction, and always
+        # bind at least one parameter so psycopg uses the extended protocol,
+        # which rejects multiple statements (e.g. "...) s; COMMIT; DROP ...").
+        # With bound parameters a literal "%" must be written as "%%".
+        subquery = clean_query.replace("%", "%%")
+
+        with self._conn.transaction(), self._conn.cursor() as cur:
+            cur.execute("SET TRANSACTION READ ONLY;")
+
             # Validate query syntax and extract columns
             try:
-                cur.execute(f"SELECT * FROM ({clean_query}) AS _subquery LIMIT 0;")
+                cur.execute(f"SELECT * FROM ({subquery}) AS _subquery LIMIT %s;", [0])
             except Exception as e:
                 raise ValueError(f"Invalid query: {str(e)}")
 
@@ -688,26 +696,28 @@ class PostgreSQLDataSource(BaseDataSource):
             params: List[Any] = []
             if pagination.search and pagination.search.strip():
                 search_term = f"%{pagination.search.strip()}%"
-                or_parts = [f"CAST({_quote_ident(c)} AS TEXT) ILIKE %s" for c in col_names]
+                or_parts = [
+                    f"CAST({_quote_ident(c).replace('%', '%%')} AS TEXT) ILIKE %s" for c in col_names
+                ]
                 if or_parts:
                     where_clause = " WHERE " + " OR ".join(or_parts)
                     params.extend([search_term] * len(or_parts))
 
-            # Total count
-            count_sql = f"SELECT COUNT(*) as total FROM ({clean_query}) AS _subquery{where_clause};"
-            cur.execute(count_sql, params)
+            # Total count (the LIMIT parameter only forces the extended protocol)
+            count_sql = f"SELECT COUNT(*) as total FROM ({subquery}) AS _subquery{where_clause} LIMIT %s;"
+            cur.execute(count_sql, params + [1])
             total = cur.fetchone()[0]
 
             # Sorting
             order_clause = ""
             if pagination.sort_by and pagination.sort_by in col_names:
                 direction = "DESC" if pagination.sort_dir.lower() == "desc" else "ASC"
-                order_clause = f" ORDER BY {_quote_ident(pagination.sort_by)} {direction}"
+                order_clause = f" ORDER BY {_quote_ident(pagination.sort_by).replace('%', '%%')} {direction}"
 
             # Pagination
             offset = (pagination.page - 1) * pagination.page_size
             query_sql = (
-                f"SELECT * FROM ({clean_query}) AS _subquery{where_clause}{order_clause} LIMIT %s OFFSET %s;"
+                f"SELECT * FROM ({subquery}) AS _subquery{where_clause}{order_clause} LIMIT %s OFFSET %s;"
             )
             query_params = list(params) + [pagination.page_size, offset]
 

@@ -9,7 +9,9 @@ assets are vendored and committed.
 - Sync deps: `uv sync`
 - Run app: `uv run python run.py` → http://127.0.0.1:8000
 - Tests: `uv run pytest`
-- `run.py` env overrides: `HOST`, `PORT`, `RELOAD=true`
+- `run.py` env overrides: `HOST`, `PORT`, `RELOAD=true`, `ALLOWED_HOSTS`
+  (comma-separated extra hostnames accepted by the request guard, e.g. a LAN
+  name when binding `HOST=0.0.0.0`)
 - `uv` is not always on `PATH` (and is not installed globally here). The repo's
   `.venv/` is already provisioned — fall back to it: `.venv/bin/python -m pytest`
   or `.venv/bin/python run.py`.
@@ -38,6 +40,17 @@ assets are vendored and committed.
   `openspec/changes/create-vg-data-visor`.
 
 ## Architecture notes
+
+- Security (`core/security.py`): there is no auth, so `LocalRequestGuard`
+  rejects requests whose `Host` is not local (DNS rebinding) and browser
+  requests from another origin (CSRF). There is deliberately no CORS. Tests
+  pass because `tests/conftest.py` sets `ALLOWED_HOSTS=testserver`.
+- Frontend: every DB- or filesystem-derived string interpolated into HTML must
+  go through `escapeHtml` (table/column names and file names are attacker
+  controlled when opening a foreign `.db`). `showToast` escapes for you.
+- Custom views are read-only: PostgreSQL runs them in a `READ ONLY`
+  transaction with bound parameters (single statement; literal `%` → `%%`),
+  MongoDB rejects `$out`/`$merge` stages anywhere in the pipeline.
 
 - To add a data source, implement `BaseDataSource`. There is no registry: routers
   call `db_manager.get_active_source()`, and only one connection is active at a

@@ -248,3 +248,36 @@ def test_postgres_adapter_ddl_and_query(mock_connect):
     q_res = ds.execute_query("SELECT 1 as val, 'item1' as name;")
     assert q_res.row_count == 1
     assert q_res.rows[0]["name"] == "item1"
+
+
+@patch("backend.app.adapters.postgres.psycopg.connect")
+def test_get_query_records_is_read_only_single_statement(mock_connect):
+    mock_conn = MagicMock()
+    mock_conn.closed = False
+    mock_cur = MagicMock()
+    mock_cur.description = [("name",)]
+    mock_cur.fetchone.return_value = (1,)
+    mock_cur.fetchall.return_value = [("100%",)]
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cur
+    mock_connect.return_value = mock_conn
+
+    ds = PostgreSQLDataSource()
+    ds.connect(host="localhost", database="db")
+    mock_cur.execute.reset_mock()
+
+    page = ds.get_query_records(
+        "SELECT name FROM t WHERE name LIKE '%x'", PaginationParams(search="a")
+    )
+    assert page.records == [{"name": "100%"}]
+
+    # Everything runs inside one transaction opened before the view query.
+    mock_conn.transaction.assert_called_once()
+    calls = mock_cur.execute.call_args_list
+    assert calls[0].args[0] == "SET TRANSACTION READ ONLY;"
+
+    # Every view statement binds parameters (extended protocol: one statement
+    # per call) and escapes literal "%" so psycopg does not treat it as a placeholder.
+    for call in calls[1:]:
+        statement, params = call.args
+        assert params, statement
+        assert "LIKE '%%x'" in statement

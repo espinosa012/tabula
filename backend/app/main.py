@@ -1,6 +1,5 @@
 import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.api.connection import router as connection_router
@@ -8,6 +7,7 @@ from backend.app.api.tables import router as tables_router
 from backend.app.api.records import router as records_router
 from backend.app.api.query import router as query_router
 from backend.app.api.views import router as views_router
+from backend.app.core.security import LocalRequestGuard
 
 app = FastAPI(
     title="vg-data-visor",
@@ -15,13 +15,9 @@ app = FastAPI(
     version="0.1.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# The UI is served from this same origin, so no CORS is needed. The guard
+# blocks other web pages (CSRF) and DNS-rebinding hosts from using the API.
+app.add_middleware(LocalRequestGuard)
 
 # Include API routers
 app.include_router(connection_router)

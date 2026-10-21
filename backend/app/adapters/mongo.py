@@ -45,6 +45,8 @@ WRITE_OPERATIONS = (
     "deletemany",
 )
 SUPPORTED_OPERATIONS = READ_OPERATIONS + WRITE_OPERATIONS
+# Aggregation stages that write to the database; not allowed in read-only views.
+WRITE_STAGES = ("$out", "$merge")
 
 
 def _serialize_mongo_value(val: Any) -> Any:
@@ -92,6 +94,23 @@ def _json_loads(text: str) -> Any:
         return bson_loads(text)
     except Exception as exc:
         raise ValueError(f"Invalid MongoDB JSON: {exc}")
+
+
+def _find_write_stage(value: Any) -> Optional[str]:
+    """Return the first write stage ($out/$merge) found anywhere in a pipeline."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in WRITE_STAGES:
+                return key
+            found = _find_write_stage(item)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for item in value:
+            found = _find_write_stage(item)
+            if found:
+                return found
+    return None
 
 
 def _try_object_id(value: Any) -> Optional[ObjectId]:
@@ -1086,6 +1105,11 @@ class MongoDataSource(BaseDataSource):
             base_pipeline = payload.get("pipeline") or []
             if not isinstance(base_pipeline, list):
                 raise ValueError("'pipeline' must be a JSON array of stages.")
+            write_stage = _find_write_stage(base_pipeline)
+            if write_stage:
+                raise ValueError(
+                    f"Custom MongoDB views are read-only; the '{write_stage}' stage is not allowed."
+                )
 
             count_pipeline = list(base_pipeline)
             if search_filter:

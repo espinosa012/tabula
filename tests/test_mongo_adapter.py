@@ -310,3 +310,22 @@ def test_views_store_accepts_mongo_identifier():
         )
     finally:
         views_store.delete_view(view.id)
+
+
+@pytest.mark.parametrize(
+    "pipeline",
+    [
+        '[{"$match": {}}, {"$out": "stolen"}]',
+        '[{"$merge": {"into": "users"}}]',
+        '[{"$facet": {"a": [{"$merge": "users"}]}}]',
+    ],
+)
+def test_get_query_records_rejects_write_stages(mongo_source, pipeline):
+    source, client = mongo_source
+
+    with pytest.raises(ValueError, match="read-only"):
+        source.get_query_records(
+            '{"collection": "users", "operation": "aggregate", "pipeline": ' + pipeline + "}",
+            PaginationParams(),
+        )
+    assert "stolen" not in client["testdb"].list_collection_names()

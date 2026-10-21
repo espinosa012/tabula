@@ -79,9 +79,11 @@ $(document).ready(function () {
 
     function showToast(title, message, type = "info") {
         if ($.toast) {
+            // Fomantic renders toast content as HTML; callers pass plain text
+            // that may contain table names or server error messages.
             $.toast({
-                title: title,
-                message: message,
+                title: escapeHtml(title),
+                message: escapeHtml(message),
                 class: type === "error" ? "error" : type === "success" ? "success" : "info",
                 showProgress: "bottom",
                 position: "bottom right",
@@ -660,7 +662,7 @@ $(document).ready(function () {
                     <div class="item fs-item">
                         <i class="${iconClass}"></i>
                         <div class="content" style="flex: 1;">
-                            <span class="header">${item.name}</span>
+                            <span class="header">${escapeHtml(item.name)}</span>
                             <span style="font-size: 0.8em; color: #718096; margin-left: 0.5rem;">${sizeLabel}</span>
                         </div>
                     </div>
@@ -677,7 +679,7 @@ $(document).ready(function () {
                 $list.append($it);
             });
         } catch (err) {
-            $list.html(`<div class="ui negative message">${err.message}</div>`);
+            $list.html(`<div class="ui negative message">${escapeHtml(err.message)}</div>`);
         }
     }
 
@@ -697,9 +699,9 @@ $(document).ready(function () {
             const target = accumulated;
             $bc.append(' <i class="right angle icon divider"></i> ');
             if (idx === parts.length - 1) {
-                $bc.append(`<div class="active section">${p}</div>`);
+                $bc.append(`<div class="active section">${escapeHtml(p)}</div>`);
             } else {
-                const $sec = $(`<a class="section">${p}</a>`);
+                const $sec = $(`<a class="section">${escapeHtml(p)}</a>`);
                 $sec.on("click", () => loadFsDirectory(target));
                 $bc.append($sec);
             }
@@ -771,9 +773,9 @@ $(document).ready(function () {
                             </div>`;
 
             const $item = $(`
-                <a class="item table-list-item ${activeClass}" data-table="${t.name}">
+                <a class="item table-list-item ${activeClass}" data-table="${escapeHtml(t.name)}">
                     <i class="${icon}"></i>
-                    <span class="table-list-name">${t.name}</span>
+                    <span class="table-list-name">${escapeHtml(t.name)}</span>
                     ${countLabel}
                     <div class="ui dropdown row-actions">
                         <i class="ellipsis vertical icon"></i>
@@ -923,7 +925,7 @@ $(document).ready(function () {
             const activeClass = isActive ? "active teal" : "";
 
             const $item = $(`
-                <a class="item table-list-item ${activeClass}" data-view-id="${v.id}">
+                <a class="item table-list-item ${activeClass}" data-view-id="${escapeHtml(v.id)}">
                     <i class="bookmark icon teal"></i>
                     <span class="table-list-name" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</span>
                     <div class="ui dropdown row-actions">
@@ -1149,7 +1151,7 @@ $(document).ready(function () {
 
             renderRecordsTable(data, false);
         } catch (err) {
-            $body.html(`<tr><td colspan="100" class="negative center aligned">${err.message}</td></tr>`);
+            $body.html(`<tr><td colspan="100" class="negative center aligned">${escapeHtml(err.message)}</td></tr>`);
         }
     }
 
@@ -1388,11 +1390,11 @@ $(document).ready(function () {
             const $field = $(`
                 <div class="field">
                     <label>
-                        ${col.name} <span style="font-weight: normal; color: #718096;">(${col.type})</span>
+                        ${escapeHtml(col.name)} <span style="font-weight: normal; color: #718096;">(${escapeHtml(col.type)})</span>
                         ${col.is_pk ? '<span class="badge-pk">PK</span>' : ""}
                         ${col.not_null ? '<span style="color: red;">*</span>' : ""}
                     </label>
-                    <input type="text" class="field-record-input" data-col="${col.name}" value="${escapeHtml(String(displayVal))}" ${isDisabled}>
+                    <input type="text" class="field-record-input" data-col="${escapeHtml(col.name)}" value="${escapeHtml(String(displayVal))}" ${isDisabled}>
                 </div>
             `);
             $container.append($field);
@@ -1480,12 +1482,12 @@ $(document).ready(function () {
         schema.columns.forEach((col) => {
             const pkBadge = col.is_pk ? '<span class="ui orange tiny label">Yes</span>' : '<span style="color: #a0aec0;">No</span>';
             const notNullBadge = col.not_null ? '<span class="ui red tiny label">NOT NULL</span>' : '<span style="color: #a0aec0;">Nullable</span>';
-            const defaultText = col.default_value !== null ? `<code>${col.default_value}</code>` : '<span style="color: #a0aec0;">-</span>';
+            const defaultText = col.default_value !== null ? `<code>${escapeHtml(col.default_value)}</code>` : '<span style="color: #a0aec0;">-</span>';
 
             $body.append(`
                 <tr>
-                    <td><strong>${col.name}</strong></td>
-                    <td><code>${col.type}</code></td>
+                    <td><strong>${escapeHtml(col.name)}</strong></td>
+                    <td><code>${escapeHtml(col.type)}</code></td>
                     <td>${pkBadge}</td>
                     <td>${notNullBadge}</td>
                     <td>${defaultText}</td>
@@ -1522,7 +1524,7 @@ $(document).ready(function () {
             <div class="fields" id="${rowId}" style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
                 <div class="six wide field">
                     <label>Name</label>
-                    <input type="text" class="col-def-name" value="${name}" placeholder="column" required>
+                    <input type="text" class="col-def-name" value="${escapeHtml(name)}" placeholder="column" required>
                 </div>
                 <div class="four wide field">
                     <label>Type</label>
@@ -1726,10 +1728,10 @@ $(document).ready(function () {
         $("#confirm-delete-title").text(`Drop ${kindLabel}`);
         $("#confirm-delete-message").html(
             isView
-                ? `Are you sure you want to drop view <strong>${name}</strong>? The view will be removed, but its underlying data is preserved.`
+                ? `Are you sure you want to drop view <strong>${escapeHtml(name)}</strong>? The view will be removed, but its underlying data is preserved.`
                 : isMongo
-                ? `Are you sure you want to permanently drop collection <strong>${name}</strong>? All its documents will be destroyed.`
-                : `Are you sure you want to permanently drop table <strong>${name}</strong>? All its data will be destroyed.`
+                ? `Are you sure you want to permanently drop collection <strong>${escapeHtml(name)}</strong>? All its documents will be destroyed.`
+                : `Are you sure you want to permanently drop table <strong>${escapeHtml(name)}</strong>? All its data will be destroyed.`
         );
 
         $("#btn-confirm-delete-execute").off("click").on("click", async function () {
@@ -1909,7 +1911,7 @@ $(document).ready(function () {
             $msgArea.show().html(`
                 <div class="ui positive message">
                     <i class="check circle icon"></i>
-                    <strong>${result.message || "Executed successfully"}</strong> (${result.execution_time_ms} ms)
+                    <strong>${escapeHtml(result.message || "Executed successfully")}</strong> (${result.execution_time_ms} ms)
                 </div>
             `);
 
@@ -2018,7 +2020,7 @@ $(document).ready(function () {
                 body: JSON.stringify({ name: "preview", sql: sql }),
             });
             $("#view-test-result").html(
-                `<div class="ui positive message mini"><i class="check circle icon"></i> Query valid! Returns ${res.total} total rows, ${res.columns.length} columns (${res.columns.slice(0, 5).join(", ")}${res.columns.length > 5 ? "..." : ""}).</div>`
+                `<div class="ui positive message mini"><i class="check circle icon"></i> Query valid! Returns ${res.total} total rows, ${res.columns.length} columns (${escapeHtml(res.columns.slice(0, 5).join(", "))}${res.columns.length > 5 ? "..." : ""}).</div>`
             ).show();
         } catch (err) {
             $("#view-test-result").html(
@@ -2090,8 +2092,8 @@ $(document).ready(function () {
     }
 
     function escapeHtml(str) {
-        if (!str) return "";
-        return str
+        if (str === null || str === undefined) return "";
+        return String(str)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
