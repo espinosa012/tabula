@@ -160,3 +160,27 @@ def test_complete_e2e_lifecycle(e2e_db_path):
     reconnect_tables = client.get("/api/tables").json()
     assert len(reconnect_tables) == 1
     assert reconnect_tables[0]["name"] == "customers"
+
+    # ================= STEP 12: Custom Views Lifecycle =================
+    # Create a custom view
+    view_res = client.post(
+        "/api/views",
+        json={
+            "name": "Girona Customers",
+            "sql": "SELECT id, name, city FROM customers WHERE city = 'Girona'",
+            "description": "Customers based in Girona",
+        },
+    )
+    assert view_res.status_code == 201
+    view_id = view_res.json()["id"]
+
+    # Retrieve records through view endpoint
+    rec_res = client.get(f"/api/views/{view_id}/records")
+    assert rec_res.status_code == 200
+    rec_json = rec_res.json()
+    assert rec_json["total"] == 1
+    assert rec_json["records"][0]["name"] == "Alice"
+
+    # Cleanup view & close connection
+    assert client.delete(f"/api/views/{view_id}").status_code == 200
+    client.post("/api/connection/close")

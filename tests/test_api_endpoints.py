@@ -1,6 +1,7 @@
 """Integration tests for all API endpoints of vg-data-visor."""
 import os
 import tempfile
+from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
@@ -34,11 +35,26 @@ def test_fs_browse():
     assert "items" in data
     assert isinstance(data["items"], list)
 
+    # Browsing with a file path should resolve to the parent directory
+    this_file = str(Path(__file__).resolve())
+    res_file = client.get(f"/api/fs/browse?path={this_file}")
+    assert res_file.status_code == 200
+    data_file = res_file.json()
+    assert data_file["current_path"] == str(Path(__file__).parent.resolve())
+
 
 def test_static_spa_serving():
     res_root = client.get("/")
     assert res_root.status_code == 200
     assert "vg-data-visor" in res_root.text
+    assert 'id="views-list"' in res_root.text
+    assert 'id="btn-modal-create-view"' in res_root.text
+    assert 'id="modal-custom-view"' in res_root.text
+    assert 'id="btn-sql-save-as-view"' in res_root.text
+    assert 'id="btn-select-engine-mongo"' in res_root.text
+    assert 'id="container-engine-mongo"' in res_root.text
+    assert 'id="form-mongo-params"' in res_root.text
+    assert 'id="form-mongo-uri"' in res_root.text
 
     res_css = client.get("/css/semantic.min.css")
     assert res_css.status_code == 200

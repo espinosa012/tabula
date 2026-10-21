@@ -92,3 +92,8 @@ class BaseDataSource(ABC):
     def execute_query(self, query: str) -> QueryResult:
         """Run a native direct query (SQL in SQLite)."""
         pass
+
+    @abstractmethod
+    def get_query_records(self, query: str, pagination: PaginationParams) -> PaginatedRecords:
+        """Get paginated, filtered, and sorted records from an arbitrary query/view."""
+        pass

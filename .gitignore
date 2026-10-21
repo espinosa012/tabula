@@ -8,3 +8,6 @@ __pycache__/
 *.sqlite
 *.sqlite3
 start.sh
+config.json
+views.json
+*.tmp.*

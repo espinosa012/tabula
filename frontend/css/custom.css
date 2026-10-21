@@ -30,10 +30,15 @@ body {
     flex-direction: column;
 }
 
+.sidebar-section-header {
+    margin: 0.7rem 0 0.4rem 0 !important;
+}
+
 .table-list-scroll {
-    flex: 1;
+    flex: 1 1 0;
+    min-height: 80px;
     overflow-y: auto;
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
 }
 
 /* The sidebar filter's icon doubles as a clear ("x") button once there is text. */

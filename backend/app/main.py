@@ -7,10 +7,11 @@ from backend.app.api.connection import router as connection_router
 from backend.app.api.tables import router as tables_router
 from backend.app.api.records import router as records_router
 from backend.app.api.query import router as query_router
+from backend.app.api.views import router as views_router
 
 app = FastAPI(
     title="vg-data-visor",
-    description="Local SQLite database viewer and editor",
+    description="Local SQLite, PostgreSQL and MongoDB viewer and editor",
     version="0.1.0",
 )
 
@@ -27,6 +28,7 @@ app.include_router(connection_router)
 app.include_router(tables_router)
 app.include_router(records_router)
 app.include_router(query_router)
+app.include_router(views_router)
 
 
 @app.get("/api/health")

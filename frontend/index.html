@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>vg-data-visor | Local SQLite Viewer & Editor</title>
+    <title>vg-data-visor | SQLite, PostgreSQL &amp; MongoDB Viewer &amp; Editor</title>
     <link rel="stylesheet" href="/css/semantic.min.css">
     <link rel="stylesheet" href="/css/codemirror.min.css">
     <link rel="stylesheet" href="/css/codemirror-theme-dracula.min.css">
@@ -40,68 +40,298 @@
                             <i class="database icon"></i>
                             <div class="content">
                                 vg-data-visor
-                                <div class="sub header">Local SQLite database viewer and editor</div>
+                                <div class="sub header">SQLite, PostgreSQL &amp; MongoDB Database Viewer &amp; Editor</div>
                             </div>
                         </h2>
                     </div>
 
-                    <div class="ui top attached tabular menu" id="connection-tabs">
-                        <a class="active item" data-tab="tab-open-db">
-                            <i class="folder open icon"></i> Open Existing
-                        </a>
-                        <a class="item" data-tab="tab-create-db">
-                            <i class="plus square outline icon"></i> Create New Database
-                        </a>
-                    </div>
-
-                    <!-- Tab 1: Open Existing -->
-                    <div class="ui bottom attached active tab segment" data-tab="tab-open-db">
-                        <form class="ui form" id="form-open-db">
-                            <div class="field">
-                                <label>SQLite file path (.db, .sqlite, .sqlite3):</label>
-                                <div class="ui action input">
-                                    <input type="text" id="input-open-path" placeholder="/absolute/path/to/my_database.sqlite" required>
-                                    <button type="button" class="ui button" id="btn-open-browse">
-                                        <i class="search icon"></i> Browse...
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="submit" class="ui primary fluid button" id="btn-submit-open">
-                                <i class="plug icon"></i> Connect
+                    <!-- Engine Selector -->
+                    <div class="ui segment center aligned" style="background: #f8fafc; padding: 0.75rem 1rem;">
+                        <span style="font-weight: 600; margin-right: 1rem; color: #4a5568;">Database Engine:</span>
+                        <div class="ui buttons small" id="engine-selector">
+                            <button type="button" class="ui positive button active" id="btn-select-engine-sqlite">
+                                <i class="file alternate outline icon"></i> SQLite
                             </button>
-                        </form>
-
-                        <!-- Recent history -->
-                        <div id="section-recent-dbs" style="margin-top: 1.5rem; display: none;">
-                            <h5 class="ui horizontal divider header">
-                                <i class="history icon"></i> Recent Files
-                            </h5>
-                            <div class="ui middle aligned selection list" id="list-recent-dbs"></div>
+                            <div class="or" data-text="or"></div>
+                            <button type="button" class="ui button" id="btn-select-engine-pg">
+                                <i class="server icon"></i> PostgreSQL
+                            </button>
+                            <div class="or" data-text="or"></div>
+                            <button type="button" class="ui button" id="btn-select-engine-mongo">
+                                <i class="leaf icon"></i> MongoDB
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Tab 2: Create New DB -->
-                    <div class="ui bottom attached tab segment" data-tab="tab-create-db">
-                        <form class="ui form" id="form-create-db">
-                            <div class="field">
-                                <label>Destination directory:</label>
-                                <div class="ui action input">
-                                    <input type="text" id="input-create-dir" placeholder="/path/to/directory" required>
-                                    <button type="button" class="ui button" id="btn-create-browse-dir">
-                                        <i class="folder icon"></i> Choose folder
-                                    </button>
+                    <!-- ================= SQLITE CONTAINER ================= -->
+                    <div id="container-engine-sqlite">
+                        <div class="ui top attached tabular menu" id="connection-tabs">
+                            <a class="active item" data-tab="tab-open-db">
+                                <i class="folder open icon"></i> Open Existing
+                            </a>
+                            <a class="item" data-tab="tab-create-db">
+                                <i class="plus square outline icon"></i> Create New Database
+                            </a>
+                        </div>
+
+                        <!-- Tab 1: Open Existing -->
+                        <div class="ui bottom attached active tab segment" data-tab="tab-open-db">
+                            <form class="ui form" id="form-open-db">
+                                <div class="field">
+                                    <label>SQLite file path (.db, .sqlite, .sqlite3):</label>
+                                    <div class="ui action input">
+                                        <input type="text" id="input-open-path" placeholder="/absolute/path/to/my_database.sqlite" required>
+                                        <button type="button" class="ui button" id="btn-open-browse">
+                                            <i class="search icon"></i> Browse...
+                                        </button>
+                                    </div>
                                 </div>
+                                <button type="submit" class="ui primary fluid button" id="btn-submit-open">
+                                    <i class="plug icon"></i> Connect
+                                </button>
+                            </form>
+
+                            <!-- Recent history -->
+                            <div id="section-recent-dbs" style="margin-top: 1.5rem; display: none;">
+                                <h5 class="ui horizontal divider header">
+                                    <i class="history icon"></i> Recent Files
+                                </h5>
+                                <div class="ui middle aligned selection list" id="list-recent-dbs"></div>
                             </div>
-                            <div class="field">
-                                <label>New file name:</label>
-                                <div class="ui input">
-                                    <input type="text" id="input-create-filename" placeholder="new_database.sqlite" required>
+                        </div>
+
+                        <!-- Tab 2: Create New DB -->
+                        <div class="ui bottom attached tab segment" data-tab="tab-create-db">
+                            <form class="ui form" id="form-create-db">
+                                <div class="field">
+                                    <label>Destination directory:</label>
+                                    <div class="ui action input">
+                                        <input type="text" id="input-create-dir" placeholder="/path/to/directory" required>
+                                        <button type="button" class="ui button" id="btn-create-browse-dir">
+                                            <i class="folder icon"></i> Choose folder
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <button type="submit" class="ui green fluid button" id="btn-submit-create">
-                                <i class="plus circle icon"></i> Create and Connect
-                            </button>
-                        </form>
+                                <div class="field">
+                                    <label>New file name:</label>
+                                    <div class="ui input">
+                                        <input type="text" id="input-create-filename" placeholder="new_database.sqlite" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="ui green fluid button" id="btn-submit-create">
+                                    <i class="plus circle icon"></i> Create and Connect
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ================= POSTGRESQL CONTAINER ================= -->
+                    <div id="container-engine-pg" style="display: none;">
+                        <div class="ui top attached tabular menu" id="pg-connection-tabs">
+                            <a class="active item" data-tab="tab-pg-params">
+                                <i class="sliders horizontal icon"></i> Parameters Form
+                            </a>
+                            <a class="item" data-tab="tab-pg-uri">
+                                <i class="linkify icon"></i> Connection URL
+                            </a>
+                        </div>
+
+                        <!-- Test result alert box -->
+                        <div class="ui message" id="pg-test-result" style="display: none; margin: 1rem 1rem 0 1rem;"></div>
+
+                        <!-- Tab 1: Parameters Form -->
+                        <div class="ui bottom attached active tab segment" data-tab="tab-pg-params">
+                            <form class="ui form" id="form-pg-params">
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>Host:</label>
+                                        <input type="text" id="input-pg-host" placeholder="localhost" value="localhost" required>
+                                    </div>
+                                    <div class="field">
+                                        <label>Port:</label>
+                                        <input type="number" id="input-pg-port" placeholder="5432" value="5432" required>
+                                    </div>
+                                </div>
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>Database:</label>
+                                        <input type="text" id="input-pg-db" placeholder="postgres" value="postgres" required>
+                                    </div>
+                                    <div class="field">
+                                        <label>User:</label>
+                                        <input type="text" id="input-pg-user" placeholder="postgres" value="postgres" required>
+                                    </div>
+                                </div>
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>Password:</label>
+                                        <input type="password" id="input-pg-pass" placeholder="Password">
+                                    </div>
+                                    <div class="field">
+                                        <label>SSL Mode:</label>
+                                        <select class="ui dropdown" id="select-pg-sslmode">
+                                            <option value="prefer" selected>prefer (automatic)</option>
+                                            <option value="require">require (cloud/remote)</option>
+                                            <option value="disable">disable (local)</option>
+                                            <option value="allow">allow</option>
+                                            <option value="verify-ca">verify-ca</option>
+                                            <option value="verify-full">verify-full</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="two fields" style="margin-top: 1rem;">
+                                    <div class="field">
+                                        <button type="button" class="ui secondary fluid button" id="btn-pg-test-params">
+                                            <i class="flask icon"></i> Test Connection
+                                        </button>
+                                    </div>
+                                    <div class="field">
+                                        <button type="submit" class="ui primary fluid button" id="btn-pg-connect-params">
+                                            <i class="plug icon"></i> Connect
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tab 2: Connection URL -->
+                        <div class="ui bottom attached tab segment" data-tab="tab-pg-uri">
+                            <form class="ui form" id="form-pg-uri">
+                                <div class="field">
+                                    <label>PostgreSQL Connection URL (URI):</label>
+                                    <div class="ui input">
+                                        <input type="text" id="input-pg-uri" placeholder="postgresql://user:password@host:5432/dbname?sslmode=require" required>
+                                    </div>
+                                    <small style="color: #718096; display: block; margin-top: 4px;">
+                                        Supported schemes: <code>postgresql://</code> or <code>postgres://</code>
+                                    </small>
+                                </div>
+                                <div class="two fields" style="margin-top: 1rem;">
+                                    <div class="field">
+                                        <button type="button" class="ui secondary fluid button" id="btn-pg-test-uri">
+                                            <i class="flask icon"></i> Test Connection
+                                        </button>
+                                    </div>
+                                    <div class="field">
+                                        <button type="submit" class="ui primary fluid button" id="btn-pg-connect-uri">
+                                            <i class="plug icon"></i> Connect
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Recent PostgreSQL history -->
+                        <div id="section-recent-pg" style="margin: 1.5rem 1rem 1rem 1rem; display: none;">
+                            <h5 class="ui horizontal divider header">
+                                <i class="history icon"></i> Recent PostgreSQL Connections
+                            </h5>
+                            <div class="ui middle aligned selection list" id="list-recent-pg"></div>
+                        </div>
+                    </div>
+
+                    <!-- ================= MONGODB CONTAINER ================= -->
+                    <div id="container-engine-mongo" style="display: none;">
+                        <div class="ui top attached tabular menu" id="mongo-connection-tabs">
+                            <a class="active item" data-tab="tab-mongo-params">
+                                <i class="sliders horizontal icon"></i> Parameters Form
+                            </a>
+                            <a class="item" data-tab="tab-mongo-uri">
+                                <i class="linkify icon"></i> Connection URL
+                            </a>
+                        </div>
+
+                        <!-- Test result alert box -->
+                        <div class="ui message" id="mongo-test-result" style="display: none; margin: 1rem 1rem 0 1rem;"></div>
+
+                        <!-- Tab 1: Parameters Form -->
+                        <div class="ui bottom attached active tab segment" data-tab="tab-mongo-params">
+                            <form class="ui form" id="form-mongo-params">
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>Host:</label>
+                                        <input type="text" id="input-mongo-host" placeholder="localhost" value="localhost" required>
+                                    </div>
+                                    <div class="field">
+                                        <label>Port:</label>
+                                        <input type="number" id="input-mongo-port" placeholder="27017" value="27017" required>
+                                    </div>
+                                </div>
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>Database:</label>
+                                        <input type="text" id="input-mongo-db" placeholder="test" value="test" required>
+                                    </div>
+                                    <div class="field">
+                                        <label>Auth Source:</label>
+                                        <input type="text" id="input-mongo-authsource" placeholder="admin" value="admin">
+                                    </div>
+                                </div>
+                                <div class="two fields">
+                                    <div class="field">
+                                        <label>User (optional):</label>
+                                        <input type="text" id="input-mongo-user" placeholder="Username">
+                                    </div>
+                                    <div class="field">
+                                        <label>Password (optional):</label>
+                                        <input type="password" id="input-mongo-pass" placeholder="Password">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="ui checkbox">
+                                        <input type="checkbox" id="check-mongo-tls">
+                                        <label>Use TLS/SSL (required by most remote and Atlas deployments)</label>
+                                    </div>
+                                </div>
+                                <div class="two fields" style="margin-top: 1rem;">
+                                    <div class="field">
+                                        <button type="button" class="ui secondary fluid button" id="btn-mongo-test-params">
+                                            <i class="flask icon"></i> Test Connection
+                                        </button>
+                                    </div>
+                                    <div class="field">
+                                        <button type="submit" class="ui primary fluid button" id="btn-mongo-connect-params">
+                                            <i class="plug icon"></i> Connect
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tab 2: Connection URL -->
+                        <div class="ui bottom attached tab segment" data-tab="tab-mongo-uri">
+                            <form class="ui form" id="form-mongo-uri">
+                                <div class="field">
+                                    <label>MongoDB Connection URL (URI):</label>
+                                    <div class="ui input">
+                                        <input type="text" id="input-mongo-uri" placeholder="mongodb://user:password@host:27017/dbname" required>
+                                    </div>
+                                    <small style="color: #718096; display: block; margin-top: 4px;">
+                                        Supported schemes: <code>mongodb://</code> or <code>mongodb+srv://</code>
+                                    </small>
+                                </div>
+                                <div class="two fields" style="margin-top: 1rem;">
+                                    <div class="field">
+                                        <button type="button" class="ui secondary fluid button" id="btn-mongo-test-uri">
+                                            <i class="flask icon"></i> Test Connection
+                                        </button>
+                                    </div>
+                                    <div class="field">
+                                        <button type="submit" class="ui primary fluid button" id="btn-mongo-connect-uri">
+                                            <i class="plug icon"></i> Connect
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Recent MongoDB history -->
+                        <div id="section-recent-mongo" style="margin: 1.5rem 1rem 1rem 1rem; display: none;">
+                            <h5 class="ui horizontal divider header">
+                                <i class="history icon"></i> Recent MongoDB Connections
+                            </h5>
+                            <div class="ui middle aligned selection list" id="list-recent-mongo"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -115,19 +345,31 @@
                 <div class="four wide column">
                     <div class="table-sidebar">
                         <div class="ui fluid icon input small">
-                            <input type="text" id="filter-tables" placeholder="Filter tables...">
-                            <i class="search icon" id="btn-filter-tables-toggle" title="Filter tables"></i>
+                            <input type="text" id="filter-tables" placeholder="Filter tables &amp; views...">
+                            <i class="search icon" id="btn-filter-tables-toggle" title="Filter tables and views"></i>
                         </div>
 
-                        <div class="ui horizontal divider header small" style="margin: 0.8rem 0;">
-                            Tables & Views (<span id="count-tables">0</span>)
+                        <div class="ui horizontal divider header small sidebar-section-header">
+                            <span id="lbl-tables-section">Tables</span> (<span id="count-tables">0</span>)
                         </div>
 
                         <button class="ui fluid primary basic mini button" id="btn-modal-create-table">
-                            <i class="plus icon"></i> New Table
+                            <i class="plus icon"></i> <span id="lbl-new-table">New Table</span>
                         </button>
 
                         <div class="ui vertical menu fluid table-list-scroll" id="tables-list">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <div class="ui horizontal divider header small sidebar-section-header" style="margin-top: 1rem;">
+                            Custom Views (<span id="count-views">0</span>)
+                        </div>
+
+                        <button class="ui fluid teal basic mini button" id="btn-modal-create-view">
+                            <i class="bookmark icon"></i> New View
+                        </button>
+
+                        <div class="ui vertical menu fluid table-list-scroll" id="views-list">
                             <!-- Injected dynamically -->
                         </div>
                     </div>
@@ -141,14 +383,14 @@
                         <div id="empty-table-state" class="ui placeholder segment center aligned">
                             <div class="ui icon header">
                                 <i class="table icon"></i>
-                                Select a table from the left panel or create a new one
+                                <span id="lbl-empty-message">Select a table from the left panel or create a new one</span>
                             </div>
                             <div class="inline">
                                 <button class="ui primary button" id="btn-empty-create-table">
                                     <i class="plus icon"></i> <span id="btn-empty-create-table-label">Create First Table</span>
                                 </button>
                                 <button class="ui secondary button" id="btn-empty-open-sql">
-                                    <i class="terminal icon"></i> Open SQL Console
+                                    <i class="terminal icon"></i> <span id="lbl-open-console">Open SQL Console</span>
                                 </button>
                             </div>
                         </div>
@@ -157,13 +399,13 @@
                         <div id="active-table-panel" style="display: none;">
                             <div class="ui secondary pointing menu" id="workspace-tabs">
                                 <a class="active item" data-tab="tab-data">
-                                    <i class="table icon"></i> Data (DML)
+                                    <i class="table icon"></i> <span id="lbl-tab-data">Data (DML)</span>
                                 </a>
                                 <a class="item" data-tab="tab-schema">
-                                    <i class="sitemap icon"></i> Structure (DDL)
+                                    <i class="sitemap icon"></i> <span id="lbl-tab-schema">Structure (DDL)</span>
                                 </a>
                                 <a class="item" data-tab="tab-sql">
-                                    <i class="terminal icon"></i> SQL Console
+                                    <i class="terminal icon"></i> <span id="lbl-tab-sql">SQL Console</span>
                                 </a>
                             </div>
 
@@ -173,7 +415,8 @@
                                     <div class="six wide column">
                                         <h3 class="ui header" style="margin: 0;">
                                             <span id="active-table-name">table</span>
-                                            <div class="sub header">Total: <span id="table-total-records">0</span> records</div>
+                                            <span class="ui mini teal label" id="badge-active-type" style="display: none; vertical-align: middle; margin-left: 0.5rem;">Custom View</span>
+                                            <div class="sub header" id="active-table-subheader">Total: <span id="table-total-records">0</span> records</div>
                                         </h3>
                                     </div>
                                     <div class="ten wide column right aligned">
@@ -184,7 +427,7 @@
                                             </button>
                                         </div>
                                         <button class="ui positive mini button" id="btn-add-record">
-                                            <i class="plus icon"></i> New Record
+                                            <i class="plus icon"></i> <span id="lbl-add-record">New Record</span>
                                         </button>
                                         <button class="ui basic mini button" id="btn-refresh-records" title="Refresh data">
                                             <i class="redo icon"></i>
@@ -228,14 +471,25 @@
                             <div class="ui tab" data-tab="tab-schema">
                                 <div class="ui stackable grid middle aligned">
                                     <div class="eight wide column">
-                                        <h3 class="ui header">Structure and Columns</h3>
+                                        <h3 class="ui header" id="lbl-structure-title">Structure and Columns</h3>
                                     </div>
-                                    <div class="eight wide column right aligned">
+                                    <div class="eight wide column right aligned" id="table-schema-actions">
                                         <button class="ui primary mini button" id="btn-modal-add-column">
-                                            <i class="plus icon"></i> Add Column
+                                            <i class="plus icon"></i> <span id="lbl-add-column">Add Column</span>
                                         </button>
                                         <button class="ui negative mini button" id="btn-modal-drop-table">
-                                            <i class="trash icon"></i> Drop Table
+                                            <i class="trash icon"></i> <span id="lbl-drop-table">Drop Table</span>
+                                        </button>
+                                    </div>
+                                    <div class="eight wide column right aligned" id="view-schema-actions" style="display: none;">
+                                        <button class="ui teal mini button" id="btn-schema-edit-view">
+                                            <i class="edit icon"></i> Edit View
+                                        </button>
+                                        <button class="ui primary mini button" id="btn-schema-open-view-sql">
+                                            <i class="terminal icon"></i> Open in Console
+                                        </button>
+                                        <button class="ui negative mini button" id="btn-schema-delete-view">
+                                            <i class="trash icon"></i> Delete View
                                         </button>
                                     </div>
                                 </div>
@@ -244,7 +498,7 @@
                                     <thead>
                                         <tr>
                                             <th>Column</th>
-                                            <th>SQLite Type</th>
+                                            <th><span id="lbl-schema-type-header">SQLite Type</span></th>
                                             <th>Primary Key</th>
                                             <th>Not Null</th>
                                             <th>Default Value</th>
@@ -253,13 +507,13 @@
                                     <tbody id="schema-body"></tbody>
                                 </table>
 
-                                <h4 class="ui dividing header">CREATE SQL Statement</h4>
+                                <h4 class="ui dividing header" id="schema-sql-view-title">CREATE SQL Statement</h4>
                                 <pre class="code-block" id="schema-sql-view">-- CREATE TABLE ...</pre>
                             </div>
 
                             <!-- Tab 3: SQL Console -->
                             <div class="ui tab" data-tab="tab-sql">
-                                <h3 class="ui header">SQL Query Console</h3>
+                                <h3 class="ui header" id="lbl-query-console-title">SQL Query Console</h3>
                                 <div class="ui form">
                                     <div class="field">
                                         <!-- Terminal-style editor: CodeMirror + Dracula dark theme -->
@@ -272,15 +526,28 @@
                                                 <span class="sql-terminal-hint">Ctrl/Cmd + Enter to run</span>
                                             </div>
                                             <div class="sql-terminal-body">
-                                                <span class="sql-terminal-prompt">sqlite&gt;</span>
+                                                <span class="sql-terminal-prompt" id="lbl-terminal-prompt">sqlite&gt;</span>
                                                 <textarea class="sql-editor-textarea" id="sql-query-input" placeholder="SELECT * FROM my_table LIMIT 50;"></textarea>
                                             </div>
                                         </div>
                                     </div>
+                                    <div id="mongo-query-help" class="ui info message" style="display: none;">
+                                        <div class="header">MongoDB JSON commands</div>
+                                        <p>
+                                            Use a JSON object with <code>collection</code> and <code>operation</code>
+                                            (<code>find</code>, <code>findOne</code>, <code>aggregate</code>, <code>count</code>,
+                                            <code>distinct</code>, <code>insertOne</code>, <code>updateOne</code>, <code>deleteOne</code>).
+                                            Example:
+                                            <code>{"collection": "users", "operation": "find", "filter": {}, "limit": 50}</code>
+                                        </p>
+                                    </div>
                                     <div class="fields" style="margin-bottom: 0.5rem;">
                                         <div class="field">
                                             <button class="ui primary button" id="btn-execute-sql">
-                                                <i class="play icon"></i> Run SQL
+                                                <i class="play icon"></i> <span id="lbl-run-query">Run SQL</span>
+                                            </button>
+                                            <button class="ui teal button" id="btn-sql-save-as-view" title="Save this query as a custom view in local JSON">
+                                                <i class="bookmark icon"></i> Save as View
                                             </button>
                                         </div>
                                         <div class="field">
@@ -338,44 +605,52 @@
     <!-- Modal 2: Create New Table (DDL) -->
     <div class="ui large modal" id="modal-create-table">
         <div class="header">
-            <i class="table icon"></i> Create New SQLite Table
+            <i class="table icon"></i> <span id="lbl-create-table-title">Create New Table</span>
         </div>
         <div class="content">
             <form class="ui form" id="form-modal-create-table">
                 <div class="field">
-                    <label>Table Name:</label>
+                    <label id="lbl-create-table-name">Table Name:</label>
                     <input type="text" id="create-tbl-name" placeholder="e.g. customers" required>
                 </div>
 
-                <h4 class="ui dividing header">Column Definition</h4>
-                <div id="create-tbl-columns-container">
-                    <!-- Dynamic column rows -->
+                <h4 class="ui dividing header" id="lbl-column-definition">Column Definition</h4>
+                <div id="mongo-create-note" class="ui info message" style="display: none;">
+                    MongoDB collections are schemaless. Fields and types are inferred from the documents
+                    you insert; no column definitions are needed here.
                 </div>
+                <div id="create-tbl-columns-section">
+                    <div id="create-tbl-columns-container">
+                        <!-- Dynamic column rows -->
+                    </div>
 
-                <button type="button" class="ui basic button small" id="btn-add-column-row" style="margin-top: 0.5rem;">
-                    <i class="plus icon"></i> Add another column
-                </button>
+                    <button type="button" class="ui basic button small" id="btn-add-column-row" style="margin-top: 0.5rem;">
+                        <i class="plus icon"></i> Add another column
+                    </button>
+                </div>
             </form>
         </div>
         <div class="actions">
             <button class="ui cancel button">Cancel</button>
-            <button class="ui primary button" id="btn-confirm-create-table">Create Table</button>
+            <button class="ui primary button" id="btn-confirm-create-table">
+                <span id="lbl-create-table-confirm">Create Table</span>
+            </button>
         </div>
     </div>
 
     <!-- Modal 3: Add Column to Existing Table -->
     <div class="ui modal" id="modal-add-column">
         <div class="header">
-            <i class="columns icon"></i> Add Column to <span id="modal-add-col-table"></span>
+            <i class="columns icon"></i> <span id="lbl-add-column-title">Add Column to</span> <span id="modal-add-col-table"></span>
         </div>
         <div class="content">
             <form class="ui form" id="form-modal-add-column">
                 <div class="field">
-                    <label>Column Name:</label>
+                    <label id="lbl-add-column-name">Column Name:</label>
                     <input type="text" id="add-col-name" placeholder="e.g. phone" required>
                 </div>
                 <div class="field">
-                    <label>Data Type:</label>
+                    <label id="lbl-add-column-type">Data Type:</label>
                     <select class="ui dropdown" id="add-col-type">
                         <option value="TEXT">TEXT</option>
                         <option value="INTEGER">INTEGER</option>
@@ -398,7 +673,9 @@
         </div>
         <div class="actions">
             <button class="ui cancel button">Cancel</button>
-            <button class="ui primary button" id="btn-confirm-add-column">Add Column</button>
+            <button class="ui primary button" id="btn-confirm-add-column">
+                <span id="lbl-add-column-confirm">Add Column</span>
+            </button>
         </div>
     </div>
 
@@ -446,6 +723,38 @@
         <div class="actions">
             <button class="ui cancel button">Cancel</button>
             <button class="ui primary button" id="btn-confirm-rename-table">Rename</button>
+        </div>
+    </div>
+
+    <!-- Modal 7: Create / Edit Custom View -->
+    <div class="ui modal" id="modal-custom-view">
+        <div class="header" id="modal-custom-view-title">
+            <i class="bookmark icon teal"></i> Custom View
+        </div>
+        <div class="content">
+            <form class="ui form" id="form-custom-view">
+                <input type="hidden" id="input-view-id">
+                <div class="field">
+                    <label>View Name:</label>
+                    <input type="text" id="input-view-name" placeholder="e.g. Active Customers" required>
+                </div>
+                <div class="field">
+                    <label>Description (optional):</label>
+                    <input type="text" id="input-view-description" placeholder="e.g. Customers with completed orders">
+                </div>
+                <div class="field">
+                    <label id="lbl-view-query">SQL Query:</label>
+                    <textarea id="input-view-sql" rows="6" style="font-family: Menlo, Monaco, Consolas, monospace; font-size: 0.9em;" placeholder="SELECT id, name FROM my_table WHERE ...;" required></textarea>
+                </div>
+                <div id="view-test-result" style="display: none; margin-top: 0.5rem;"></div>
+            </form>
+        </div>
+        <div class="actions">
+            <button type="button" class="ui basic button" id="btn-test-view-sql">
+                <i class="play icon"></i> Test Query
+            </button>
+            <button class="ui cancel button">Cancel</button>
+            <button class="ui teal button" id="btn-confirm-save-view">Save View</button>
         </div>
     </div>
 

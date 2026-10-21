@@ -506,3 +506,82 @@ class SQLiteDataSource(BaseDataSource):
         except Exception as e:
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
             raise RuntimeError(f"SQL execution error ({elapsed_ms} ms): {str(e)}")
+
+    def get_query_records(self, query: str, pagination: PaginationParams) -> PaginatedRecords:
+        """Read paginated, filtered, and sorted records from an arbitrary SELECT query or custom view."""
+        if not self.is_connected():
+            raise RuntimeError("Database not connected.")
+
+        clean_query = query.strip().rstrip(";").strip()
+        if not clean_query:
+            return PaginatedRecords(
+                total=0,
+                page=pagination.page,
+                page_size=pagination.page_size,
+                total_pages=1,
+                columns=[],
+                records=[],
+                pk_columns=[],
+            )
+
+        cursor = self._conn.cursor()
+
+        # Validate query syntax and extract columns
+        try:
+            cursor.execute(f"SELECT * FROM ({clean_query}) AS _subquery LIMIT 0;")
+        except Exception as e:
+            raise ValueError(f"Invalid query: {str(e)}")
+
+        col_names: List[str] = []
+        if cursor.description:
+            seen: Dict[str, int] = {}
+            for col in cursor.description:
+                raw_name = col[0]
+                cnt = seen.get(raw_name, 0)
+                seen[raw_name] = cnt + 1
+                col_names.append(raw_name if cnt == 0 else f"{raw_name}_{cnt}")
+
+        # WHERE clause for search
+        where_clause = ""
+        params: List[Any] = []
+        if pagination.search and pagination.search.strip():
+            search_term = f"%{pagination.search.strip()}%"
+            or_parts = [f"CAST({_quote_ident(c)} AS TEXT) LIKE ?" for c in col_names]
+            if or_parts:
+                where_clause = " WHERE " + " OR ".join(or_parts)
+                params.extend([search_term] * len(or_parts))
+
+        # Total count
+        count_sql = f"SELECT COUNT(*) as total FROM ({clean_query}) AS _subquery{where_clause};"
+        cursor.execute(count_sql, params)
+        total = cursor.fetchone()["total"]
+
+        # Sorting
+        order_clause = ""
+        if pagination.sort_by and pagination.sort_by in col_names:
+            direction = "DESC" if pagination.sort_dir.lower() == "desc" else "ASC"
+            order_clause = f" ORDER BY {_quote_ident(pagination.sort_by)} {direction}"
+
+        # Pagination
+        offset = (pagination.page - 1) * pagination.page_size
+        query_sql = f"SELECT * FROM ({clean_query}) AS _subquery{where_clause}{order_clause} LIMIT ? OFFSET ?;"
+        query_params = list(params) + [pagination.page_size, offset]
+
+        cursor.execute(query_sql, query_params)
+        raw_rows = cursor.fetchall()
+
+        records = [
+            {col_names[i]: row[i] for i in range(len(col_names))}
+            for row in raw_rows
+        ]
+        total_pages = (total + pagination.page_size - 1) // pagination.page_size if total > 0 else 1
+
+        return PaginatedRecords(
+            total=total,
+            page=pagination.page,
+            page_size=pagination.page_size,
+            total_pages=total_pages,
+            columns=col_names,
+            records=records,
+            pk_columns=[],
+        )
