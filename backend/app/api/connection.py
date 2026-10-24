@@ -35,12 +35,13 @@ class CreateDatabaseRequest(BaseModel):
 @router.post("/connection/open", response_model=ConnectionInfo)
 def open_database(req: OpenDatabaseRequest):
     """Open an existing SQLite database file."""
-    if not req.path.strip():
+    clean_path = req.path.strip().strip("'\"")
+    if not clean_path:
         raise HTTPException(status_code=400, detail="The file path cannot be empty.")
 
     ds = SQLiteDataSource()
     try:
-        info = ds.connect(req.path)
+        info = ds.connect(clean_path)
         db_manager.set_active_source(ds)
         return info
     except FileNotFoundError as e:
@@ -54,7 +55,7 @@ def open_database(req: OpenDatabaseRequest):
 @router.post("/connection/create", response_model=ConnectionInfo)
 def create_database(req: CreateDatabaseRequest):
     """Create a new clean SQLite database and connect to it."""
-    clean_path = req.path.strip()
+    clean_path = req.path.strip().strip("'\"")
     if not clean_path:
         raise HTTPException(status_code=400, detail="The file path cannot be empty.")
 

@@ -189,3 +189,33 @@ def test_execute_query_and_drop(temp_db):
     # Drop table
     assert ds.drop_table("notes")
     assert len(ds.list_collections()) == 0
+
+
+def test_connect_with_quotes_and_special_chars(temp_db):
+    ds = SQLiteDataSource()
+    ds.create_database(temp_db)
+    ds.execute_query("CREATE TABLE item (id INTEGER PRIMARY KEY);")
+    ds.close()
+
+    # Quoted path
+    quoted_path = f'"{temp_db}"'
+    info = ds.connect(quoted_path)
+    assert info.connected
+    assert len(ds.list_collections()) == 1
+    ds.close()
+
+    # Path with hash/special chars in filename
+    special_name = temp_db.replace(".sqlite", "#test.sqlite")
+    try:
+        ds_special = SQLiteDataSource()
+        ds_special.create_database(special_name)
+        ds_special.execute_query("CREATE TABLE special (x INT);")
+        ds_special.close()
+
+        info_special = ds_special.connect(special_name)
+        assert info_special.connected
+        assert len(ds_special.list_collections()) == 1
+        ds_special.close()
+    finally:
+        if os.path.exists(special_name):
+            os.remove(special_name)

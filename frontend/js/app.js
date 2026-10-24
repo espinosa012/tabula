@@ -73,6 +73,15 @@ $(document).ready(function () {
             return data;
         } catch (err) {
             console.error(`API error at ${endpoint}:`, err);
+            if (
+                err.name === "TypeError" &&
+                (err.message === "Failed to fetch" ||
+                 err.message === "Load failed" ||
+                 err.message.includes("fetch") ||
+                 err.message.includes("NetworkError"))
+            ) {
+                throw new Error("Cannot connect to backend server. Make sure vg-data-visor is running at http://127.0.0.1:8000.");
+            }
             throw err;
         }
     }
@@ -107,21 +116,8 @@ $(document).ready(function () {
         }
     }
 
-    async function checkConnectionStatus() {
-        try {
-            const status = await apiRequest("/api/connection/status");
-            if (status.connected && status.path) {
-                setConnectedState(status);
-            } else {
-                setDisconnectedState();
-            }
-        } catch (e) {
-            setDisconnectedState();
-        }
-    }
-
-    function setConnectedState(info) {
-        state.connected = true;
+    function updateConnectionStatusDisplay(info) {
+        state.connected = info.connected;
         state.dbPath = info.path;
         state.dbType = info.db_type || "sqlite";
 
@@ -139,15 +135,53 @@ $(document).ready(function () {
         }
 
         $("#nav-db-status").html(statusHtml);
+    }
+
+    async function checkConnectionStatus() {
+        try {
+            const status = await apiRequest("/api/connection/status");
+            if (status.connected && status.path) {
+                if (state.connected) {
+                    updateConnectionStatusDisplay(status);
+                } else {
+                    setConnectedState(status);
+                }
+                return status;
+            } else {
+                setDisconnectedState();
+                return null;
+            }
+        } catch (e) {
+            setDisconnectedState();
+            return null;
+        }
+    }
+
+    function setConnectedState(info) {
+        updateConnectionStatusDisplay(info);
+
         $("#btn-refresh-all, #btn-disconnect").show();
         $("#view-connection").hide();
         $("#view-workspace").show();
         applyDbTypeLabels();
 
         updateSqlTerminalTitle();
-        loadTablesList();
-        loadViewsList();
+        Promise.all([loadTablesList(), loadViewsList()]).then(() => {
+            restoreActiveSelection();
+        });
         loadRecentDatabases();
+    }
+
+    function restoreActiveSelection() {
+        try {
+            const savedTable = sessionStorage.getItem("vg_active_table");
+            const savedView = sessionStorage.getItem("vg_active_view");
+            if (savedTable && state.tables.some((t) => t.name === savedTable)) {
+                selectActiveTable(savedTable);
+            } else if (savedView && state.views.some((v) => v.id === savedView)) {
+                selectActiveView(savedView);
+            }
+        } catch (e) {}
     }
 
     function setDisconnectedState() {
@@ -159,6 +193,11 @@ $(document).ready(function () {
         state.activeTable = null;
         state.activeView = null;
         state.activeSchema = null;
+
+        try {
+            sessionStorage.removeItem("vg_active_table");
+            sessionStorage.removeItem("vg_active_view");
+        } catch (e) {}
 
         $("#views-list").empty();
         $("#count-views").text("0");
@@ -605,13 +644,54 @@ $(document).ready(function () {
         }
     });
 
-    $("#btn-refresh-all").on("click", function () {
-        loadTablesList();
-        loadViewsList();
-        if (state.activeTable) {
-            loadActiveTable();
-        } else if (state.activeView) {
-            loadActiveView();
+    $("#btn-refresh-all").on("click", async function () {
+        const $btn = $(this);
+        const $icon = $btn.find("i");
+        $icon.addClass("loading");
+        $btn.css("pointer-events", "none").css("opacity", "0.7");
+
+        try {
+            await checkConnectionStatus();
+            if (!state.connected) return;
+
+            await Promise.all([loadTablesList(), loadViewsList()]);
+
+            if (state.activeTable) {
+                const stillExists = state.tables.some((t) => t.name === state.activeTable);
+                if (stillExists) {
+                    await loadActiveTable();
+                } else {
+                    state.activeTable = null;
+                    state.activeSchema = null;
+                    try { sessionStorage.removeItem("vg_active_table"); } catch (e) {}
+                    $("#active-table-panel").hide();
+                    $("#empty-table-state").show();
+                    showToast("Table Removed", "The active table no longer exists in the database", "info");
+                }
+            } else if (state.activeView) {
+                const updatedView = state.views.find((v) => v.id === state.activeView.id);
+                if (updatedView) {
+                    state.activeView = updatedView;
+                    await loadActiveView();
+                } else {
+                    state.activeView = null;
+                    try { sessionStorage.removeItem("vg_active_view"); } catch (e) {}
+                    $("#active-table-panel").hide();
+                    $("#empty-table-state").show();
+                    showToast("View Removed", "The active custom view no longer exists", "info");
+                }
+            }
+
+            if (state.activeTab === "tab-sql") {
+                refreshSqlEditor();
+            }
+
+            showToast("Refreshed", "Catalog and data updated", "success");
+        } catch (err) {
+            showToast("Error refreshing", err.message, "error");
+        } finally {
+            $icon.removeClass("loading");
+            $btn.css("pointer-events", "").css("opacity", "");
         }
     });
 
@@ -851,6 +931,10 @@ $(document).ready(function () {
     function selectActiveTable(tableName) {
         state.activeTable = tableName;
         state.activeView = null;
+        try {
+            sessionStorage.setItem("vg_active_table", tableName);
+            sessionStorage.removeItem("vg_active_view");
+        } catch (e) {}
         state.pagination.page = 1;
         state.pagination.search = "";
         state.pagination.sortBy = null;
@@ -870,7 +954,9 @@ $(document).ready(function () {
         $("#active-table-panel").show();
         $("#active-table-name").text(state.activeTable);
         $("#badge-active-type").hide();
-        $("#active-table-subheader").html('Total: <span id="table-total-records">0</span> records');
+        if (!$("#table-total-records").length) {
+            $("#active-table-subheader").html('Total: <span id="table-total-records">0</span> records');
+        }
         $("#btn-add-record").show();
         $("#table-schema-actions").show();
         $("#view-schema-actions").hide();
@@ -985,6 +1071,10 @@ $(document).ready(function () {
         state.activeView = view;
         state.activeTable = null;
         state.activeSchema = null;
+        try {
+            sessionStorage.setItem("vg_active_view", viewId);
+            sessionStorage.removeItem("vg_active_table");
+        } catch (e) {}
         state.pagination.page = 1;
         state.pagination.search = "";
         state.pagination.sortBy = null;
@@ -1034,6 +1124,13 @@ $(document).ready(function () {
 
         try {
             const data = await apiRequest(`/api/views/${encodeURIComponent(state.activeView.id)}/records?${params.toString()}`);
+
+            // If records were deleted and current page is beyond total pages, clamp and reload
+            if (data.total > 0 && state.pagination.page > data.total_pages) {
+                state.pagination.page = data.total_pages;
+                return loadViewRecords();
+            }
+
             state.pagination.totalRecords = data.total;
             state.pagination.totalPages = data.total_pages;
 
@@ -1099,6 +1196,7 @@ $(document).ready(function () {
 
                 if (state.activeView && state.activeView.id === view.id) {
                     state.activeView = null;
+                    try { sessionStorage.removeItem("vg_active_view"); } catch (e) {}
                     $("#active-table-panel").hide();
                     $("#empty-table-state").show();
                 }
@@ -1141,6 +1239,13 @@ $(document).ready(function () {
 
         try {
             const data = await apiRequest(`/api/tables/${encodeURIComponent(state.activeTable)}/records?${params.toString()}`);
+
+            // If records were deleted and current page is beyond total pages, clamp and reload
+            if (data.total > 0 && state.pagination.page > data.total_pages) {
+                state.pagination.page = data.total_pages;
+                return loadTableRecords();
+            }
+
             state.pagination.totalRecords = data.total;
             state.pagination.totalPages = data.total_pages;
 
@@ -1337,7 +1442,28 @@ $(document).ready(function () {
         }
     });
 
-    $("#btn-refresh-records").on("click", loadTableRecords);
+    $("#btn-refresh-records").on("click", async function () {
+        const $btn = $(this);
+        const $icon = $btn.find("i");
+        $icon.addClass("loading");
+        $btn.addClass("disabled");
+
+        try {
+            if (state.activeTable) {
+                await loadTableSchema();
+                await loadTableRecords();
+                await loadTablesList();
+            } else if (state.activeView) {
+                await loadViewRecords();
+            }
+            showToast("Refreshed", "Records up to date", "success");
+        } catch (err) {
+            showToast("Error refreshing records", err.message, "error");
+        } finally {
+            $icon.removeClass("loading");
+            $btn.removeClass("disabled");
+        }
+    });
 
     // ================= MODAL: INSERT / EDIT RECORD =================
     $("#btn-add-record").on("click", function () {
@@ -1698,6 +1824,7 @@ $(document).ready(function () {
                 // Keep the workspace pointed at the same (now renamed) table.
                 if (state.activeTable === currentName) {
                     state.activeTable = newName;
+                    try { sessionStorage.setItem("vg_active_table", newName); } catch (e) {}
                     $("#active-table-name").text(newName);
                 }
                 await loadTablesList();
@@ -1746,6 +1873,7 @@ $(document).ready(function () {
                 if (state.activeTable === name) {
                     state.activeTable = null;
                     state.activeSchema = null;
+                    try { sessionStorage.removeItem("vg_active_table"); } catch (e) {}
                     $("#active-table-panel").hide();
                     $("#empty-table-state").show();
                 }
@@ -1804,7 +1932,20 @@ $(document).ready(function () {
     // CodeMirror cannot measure itself while its tab is hidden, so refresh the
     // editor whenever the SQL tab becomes visible.
     function refreshSqlEditor() {
-        if (sqlEditor) sqlEditor.refresh();
+        if (sqlEditor) {
+            sqlEditor.refresh();
+            setTimeout(function () {
+                if (sqlEditor) sqlEditor.refresh();
+            }, 50);
+        }
+    }
+
+    function focusSqlEditor() {
+        if (sqlEditor) {
+            sqlEditor.focus();
+        } else {
+            $("#sql-query-input").focus();
+        }
     }
 
     // Keeps the terminal title bar showing the connected database file or host.
@@ -1920,9 +2061,22 @@ $(document).ready(function () {
                 $resContainer.show();
             } else {
                 $resContainer.hide();
-                // If it ran DDL or an insert, refresh the table list
-                loadTablesList();
-                if (state.activeTable) loadTableRecords();
+                // If it ran DDL or an insert, refresh connection status, tables, views, and active table/schema
+                await checkConnectionStatus();
+                await Promise.all([loadTablesList(), loadViewsList()]);
+                if (state.activeTable) {
+                    const stillExists = state.tables.some((t) => t.name === state.activeTable);
+                    if (stillExists) {
+                        await loadTableSchema();
+                        await loadTableRecords();
+                    } else {
+                        state.activeTable = null;
+                        state.activeSchema = null;
+                        try { sessionStorage.removeItem("vg_active_table"); } catch (e) {}
+                        $("#active-table-panel").hide();
+                        $("#empty-table-state").show();
+                    }
+                }
             }
         } catch (err) {
             const errorLabel = state.dbType === "mongo" ? "MongoDB Error:" : "SQL Error:";

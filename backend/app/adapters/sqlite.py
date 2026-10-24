@@ -3,6 +3,7 @@ import os
 import sqlite3
 import time
 from typing import List, Dict, Any, Optional
+from urllib.request import pathname2url
 
 from backend.app.core.interfaces import BaseDataSource
 from backend.app.core.models import (
@@ -32,7 +33,8 @@ class SQLiteDataSource(BaseDataSource):
 
     def connect(self, path: str) -> ConnectionInfo:
         """Connect to an existing SQLite file."""
-        abs_path = os.path.abspath(path)
+        clean_path = path.strip().strip("'\"")
+        abs_path = os.path.abspath(os.path.expanduser(clean_path))
         if not os.path.exists(abs_path):
             raise FileNotFoundError(f"File does not exist: {abs_path}")
         if os.path.isdir(abs_path):
@@ -40,7 +42,8 @@ class SQLiteDataSource(BaseDataSource):
 
         # Check whether it is a valid SQLite file
         try:
-            conn = sqlite3.connect(f"file:{abs_path}?mode=rw", uri=True, check_same_thread=False, timeout=10.0)
+            uri = f"file:{pathname2url(abs_path)}?mode=rw"
+            conn = sqlite3.connect(uri, uri=True, check_same_thread=False, timeout=10.0)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("PRAGMA schema_version;")
@@ -62,7 +65,8 @@ class SQLiteDataSource(BaseDataSource):
 
     def create_database(self, path: str) -> ConnectionInfo:
         """Create a new empty SQLite database file and connect to it."""
-        abs_path = os.path.abspath(path)
+        clean_path = path.strip().strip("'\"")
+        abs_path = os.path.abspath(os.path.expanduser(clean_path))
         if os.path.exists(abs_path):
             raise FileExistsError(f"File already exists: {abs_path}")
 
