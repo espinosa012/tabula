@@ -1,1 +1,1 @@
-"""Tabula backend application package."""
+"""tabula backend application package."""

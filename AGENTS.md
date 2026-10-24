@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Tabula — Local, 100% offline database viewer/editor (SQLite, PostgreSQL, MongoDB).
+tabula — Local, 100% offline database viewer/editor (SQLite, PostgreSQL, MongoDB).
 FastAPI backend + vanilla JS frontend (Fomantic-UI/Semantic UI). No frontend build step,
 no Node/npm — the frontend assets are vendored and committed.
 

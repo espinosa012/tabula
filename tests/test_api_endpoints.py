@@ -1,4 +1,4 @@
-"""Integration tests for all API endpoints of Tabula."""
+"""Integration tests for all API endpoints of tabula."""
 import os
 import tempfile
 from pathlib import Path
@@ -46,7 +46,7 @@ def test_fs_browse():
 def test_static_spa_serving():
     res_root = client.get("/")
     assert res_root.status_code == 200
-    assert "Tabula" in res_root.text
+    assert "tabula" in res_root.text
     assert 'id="views-list"' in res_root.text
     assert 'id="btn-modal-create-view"' in res_root.text
     assert 'id="modal-custom-view"' in res_root.text
@@ -64,7 +64,7 @@ def test_static_spa_serving():
 
     res_app = client.get("/js/app.js")
     assert res_app.status_code == 200
-    assert "Tabula" in res_app.text
+    assert "tabula" in res_app.text
 
 
 def test_sql_console_terminal_assets():

@@ -1,5 +1,5 @@
 [project]
-name = "Tabula"
+name = "tabula"
 version = "0.1.0"
 description = "Local database viewer and editor for SQLite, PostgreSQL, and MongoDB with Semantic UI (Fomantic-UI) and FastAPI"
 readme = "README.md"

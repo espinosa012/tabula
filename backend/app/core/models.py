@@ -1,4 +1,4 @@
-"""Pydantic models for the Tabula core."""
+"""Pydantic models for the tabula core."""
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 

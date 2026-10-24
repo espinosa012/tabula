@@ -1,4 +1,4 @@
-"""End-to-end (E2E) integration test for Tabula."""
+"""End-to-end (E2E) integration test for tabula."""
 import os
 import tempfile
 import pytest

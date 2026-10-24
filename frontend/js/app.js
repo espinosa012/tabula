@@ -1,5 +1,5 @@
 /**
- * Tabula - SPA Frontend Logic
+ * tabula - SPA Frontend Logic
  */
 
 $(document).ready(function () {
@@ -80,7 +80,7 @@ $(document).ready(function () {
                  err.message.includes("fetch") ||
                  err.message.includes("NetworkError"))
             ) {
-                throw new Error("Cannot connect to backend server. Make sure Tabula is running at http://127.0.0.1:8000.");
+                throw new Error("Cannot connect to backend server. Make sure tabula is running at http://127.0.0.1:8000.");
             }
             throw err;
         }

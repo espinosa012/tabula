@@ -1,4 +1,4 @@
-"""MongoDB adapter for Tabula using pymongo."""
+"""MongoDB adapter for tabula using pymongo."""
 from datetime import date, datetime, time
 from decimal import Decimal
 import re

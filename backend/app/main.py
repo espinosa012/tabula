@@ -10,7 +10,7 @@ from backend.app.api.views import router as views_router
 from backend.app.core.security import LocalRequestGuard
 
 app = FastAPI(
-    title="Tabula",
+    title="tabula",
     description="Local SQLite, PostgreSQL and MongoDB viewer and editor",
     version="0.1.0",
 )
@@ -29,7 +29,7 @@ app.include_router(views_router)
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "app": "Tabula", "version": "0.1.0"}
+    return {"status": "ok", "app": "tabula", "version": "0.1.0"}
 
 
 # Mount static files if the frontend folder exists

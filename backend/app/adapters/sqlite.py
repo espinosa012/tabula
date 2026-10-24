@@ -1,4 +1,4 @@
-"""SQLite adapter for Tabula."""
+"""SQLite adapter for tabula."""
 import os
 import sqlite3
 import time
