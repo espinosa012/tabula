@@ -1,4 +1,4 @@
-"""SQLite adapter for vg-data-visor."""
+"""SQLite adapter for Tabula."""
 import os
 import sqlite3
 import time

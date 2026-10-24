@@ -1,4 +1,4 @@
-"""PostgreSQL adapter for vg-data-visor using psycopg 3."""
+"""PostgreSQL adapter for Tabula using psycopg 3."""
 from datetime import date, datetime, time
 from decimal import Decimal
 import os

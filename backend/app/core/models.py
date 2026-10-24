@@ -1,4 +1,4 @@
-"""Pydantic models for the vg-data-visor core."""
+"""Pydantic models for the Tabula core."""
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 

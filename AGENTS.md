@@ -1,8 +1,8 @@
 # AGENTS.md
 
-Local, 100% offline SQLite viewer/editor. FastAPI backend + vanilla JS frontend
-(Fomantic-UI/Semantic UI). No frontend build step, no Node/npm — the frontend
-assets are vendored and committed.
+Tabula — Local, 100% offline database viewer/editor (SQLite, PostgreSQL, MongoDB).
+FastAPI backend + vanilla JS frontend (Fomantic-UI/Semantic UI). No frontend build step,
+no Node/npm — the frontend assets are vendored and committed.
 
 ## Commands
 
@@ -36,8 +36,8 @@ assets are vendored and committed.
   `css/codemirror*.css`, Dracula dark theme) styled as a dark terminal in
   `css/custom.css`; `js/app.js` initializes it and falls back to the plain
   `<textarea>` if CodeMirror is unavailable.
-- `openspec/` — spec-driven change docs; active change lives in
-  `openspec/changes/create-vg-data-visor`.
+- `openspec/` — spec-driven change docs; archived changes live in
+  `openspec/changes/archive/`.
 
 ## Architecture notes
 

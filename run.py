@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point to run vg-data-visor."""
+"""Entry point to run Tabula."""
 import sys
 import os
 import uvicorn
@@ -14,5 +14,5 @@ if __name__ == "__main__":
     host = os.environ.get("HOST", "127.0.0.1")
     reload = os.environ.get("RELOAD", "false").lower() in ("true", "1", "yes")
 
-    print(f"Starting vg-data-visor at http://{host}:{port} ...")
+    print(f"Starting Tabula at http://{host}:{port} ...")
     uvicorn.run("backend.app.main:app", host=host, port=port, reload=reload)

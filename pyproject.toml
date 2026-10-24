@@ -1,7 +1,7 @@
 [project]
-name = "vg-data-visor"
+name = "Tabula"
 version = "0.1.0"
-description = "Local SQLite database viewer and editor with Semantic UI (Fomantic-UI) and FastAPI"
+description = "Local database viewer and editor for SQLite, PostgreSQL, and MongoDB with Semantic UI (Fomantic-UI) and FastAPI"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

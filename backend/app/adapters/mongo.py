@@ -1,4 +1,4 @@
-"""MongoDB adapter for vg-data-visor using pymongo."""
+"""MongoDB adapter for Tabula using pymongo."""
 from datetime import date, datetime, time
 from decimal import Decimal
 import re

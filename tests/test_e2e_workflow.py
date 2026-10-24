@@ -1,4 +1,4 @@
-"""End-to-end (E2E) integration test for vg-data-visor."""
+"""End-to-end (E2E) integration test for Tabula."""
 import os
 import tempfile
 import pytest

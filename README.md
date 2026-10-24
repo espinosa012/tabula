@@ -1,4 +1,4 @@
-# vg-data-visor
+# Tabula
 
 A local, 100% offline web tool for inspecting, editing, and managing SQLite, PostgreSQL, and MongoDB databases with Semantic UI (Fomantic-UI) and FastAPI.
 

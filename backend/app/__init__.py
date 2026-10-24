@@ -1,1 +1,1 @@
-"""vg-data-visor backend application package."""
+"""Tabula backend application package."""
